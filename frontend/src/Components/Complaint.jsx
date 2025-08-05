@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import gsap from 'gsap';
 import { db } from '../../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -29,6 +28,12 @@ const questions = [
 const ComplaintModal = ({ open, onClose, user }) => {
   const [step, setStep] = useState(0);
   const [responses, setResponses] = useState({});
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [addEvidence, setAddEvidence] = useState(false);
+  const [evidenceFile, setEvidenceFile] = useState(null);
+  const [addNgo, setAddNgo] = useState(false);
+  const [ngoName, setNgoName] = useState('');
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (open) setStep(0);
@@ -43,13 +48,30 @@ const ComplaintModal = ({ open, onClose, user }) => {
     setResponses((prev) => ({ ...prev, [key]: value }));
   };
 
+  // Dummy upload function, replace with Firebase Storage if needed
+  const uploadEvidence = async (file) => {
+    // In production, upload to Firebase Storage and return the URL
+    return new Promise((resolve) => {
+      setTimeout(() => resolve("https://dummyimage.com/600x400/000/fff&text=Uploaded+Evidence"), 1000);
+    });
+  };
+
   const handleSubmit = async () => {
+    setUploading(true);
+    let evidenceUrl = '';
+    if (addEvidence && evidenceFile) {
+      evidenceUrl = await uploadEvidence(evidenceFile);
+    }
     try {
       await addDoc(collection(db, 'complaints'), {
         ...responses,
-        userEmail: user?.email || '',
+        userEmail: isAnonymous ? 'anonymous' : (user?.email || ''),
+        userName: isAnonymous ? 'Anonymous' : (user?.name || ''),
         status: 'pending',
         createdAt: serverTimestamp(),
+        evidenceUrl,
+        ngo: addNgo ? ngoName : '',
+        isAnonymous,
       });
       alert('Your complaint has been submitted successfully.');
       if (onClose) onClose();
@@ -57,21 +79,8 @@ const ComplaintModal = ({ open, onClose, user }) => {
       alert('Failed to submit complaint. Please try again.');
       console.error('Error submitting complaint:', error);
     }
+    setUploading(false);
   };
-
-  useEffect(() => {
-    const floatingElements = gsap.utils.toArray(".floating-element");
-    floatingElements.forEach((el) => {
-      gsap.to(el, {
-        y: 20,
-        repeat: -1,
-        yoyo: true,
-        ease: "power1.inOut",
-        duration: 2 + Math.random(),
-        delay: Math.random(),
-      });
-    });
-  }, []);
 
   if (!open) return null;
 
@@ -82,16 +91,16 @@ const ComplaintModal = ({ open, onClose, user }) => {
         className="absolute inset-0 bg-black/30 backdrop-blur-sm"
         onClick={onClose}
       ></div>
-      <div className="relative w-full max-w-lg bg-white rounded-xl shadow-xl z-10 p-6 flex flex-col">
+      <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl z-10 p-8 flex flex-col min-h-[520px]">
         <button
-          className="absolute top-3 right-3 text-orange-500 hover:text-orange-700 text-xl font-bold z-20"
+          className="absolute top-4 right-4 text-orange-500 hover:text-orange-700 text-2xl font-bold z-20"
           onClick={onClose}
         >
           ×
         </button>
         {step < questions.length ? (
           <div>
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">
+            <h2 className="text-2xl font-semibold text-gray-800 mb-4">
               {questions[step].question}
             </h2>
             {questions[step].options && (
@@ -153,15 +162,62 @@ const ComplaintModal = ({ open, onClose, user }) => {
                 </li>
               ))}
             </ul>
+            {/* Toggles */}
+            <div className="flex flex-col gap-3 mb-4">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={isAnonymous}
+                  onChange={() => setIsAnonymous((v) => !v)}
+                  className="accent-orange-500"
+                />
+                <span className="text-gray-700">Submit as Anonymous</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={addEvidence}
+                  onChange={() => setAddEvidence((v) => !v)}
+                  className="accent-orange-500"
+                />
+                <span className="text-gray-700">Add Evidence (JPG only)</span>
+              </label>
+              {addEvidence && (
+                <input
+                  type="file"
+                  accept="image/jpeg"
+                  className="block"
+                  onChange={e => setEvidenceFile(e.target.files[0])}
+                />
+              )}
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={addNgo}
+                  onChange={() => setAddNgo((v) => !v)}
+                  className="accent-orange-500"
+                />
+                <span className="text-gray-700">Connect to a related NGO</span>
+              </label>
+              {addNgo && (
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  placeholder="Enter NGO name"
+                  value={ngoName}
+                  onChange={e => setNgoName(e.target.value)}
+                />
+              )}
+            </div>
             <button
               onClick={handleSubmit}
-              className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600"
+              className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 w-full"
+              disabled={uploading}
             >
-              Submit Complaint
+              {uploading ? "Submitting..." : "Submit Complaint"}
             </button>
           </div>
         )}
-        {/* No floating elements for a simpler modal */}
       </div>
     </div>
   );
