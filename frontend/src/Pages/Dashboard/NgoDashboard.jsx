@@ -575,7 +575,7 @@ const NgoDashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-red-200 text-red-800 shadow-lg">
+      <header className="bg-red-200 text-white shadow-lg">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div>

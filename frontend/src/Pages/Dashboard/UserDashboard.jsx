@@ -23,10 +23,7 @@ import {
   Lock,
   Eye,
   Bell,
-  Activity,
-  LogOut,
-  Menu,
-  X,
+  Activity
 } from "lucide-react";
 import {
   collection,
@@ -341,6 +338,14 @@ const DeviDashboard = () => {
                     <LogOut className="w-5 h-5" />
                   </button>
                 </div>
+                <button
+                  onClick={() => navigate("/stealth")}
+                  className="bg-gray-800 px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center text-white"
+                  title="Stealth Mode"
+                >
+                  <EyeOff className="h-4 w-4 mr-2" />
+                  Stealth Mode
+                </button>
               </div>
 
               {/* Mobile Menu Button */}

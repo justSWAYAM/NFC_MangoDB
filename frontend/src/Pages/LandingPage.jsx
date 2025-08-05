@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import CircularText from "../TextAnimations/CircularText/CircularText";
 import { Link } from "react-router-dom";
-import Footer from "../Components/Footer";
 import TestimonialCard from "../Components/TestimonialCard";
 import { motion } from "framer-motion";
 
@@ -239,8 +238,6 @@ const EmpowermentLanding = () => {
           </div>
         </div>
       </section>
-
-      <Footer />
     </div>
   );
 };
