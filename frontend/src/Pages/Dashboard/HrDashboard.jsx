@@ -39,6 +39,8 @@ import {
   LogOut,
 } from "lucide-react";
 
+const DEFAULT_IMAGE_PATH = "/default-evidence.jpg"; // Place a jpg in your public folder with this name
+
 const HrDashboard = () => {
   const [activeTab, setActiveTab] = useState("active");
   const [selectedCase, setSelectedCase] = useState(null);
@@ -51,6 +53,9 @@ const HrDashboard = () => {
   const [activeCases, setActiveCases] = useState([]);
   const [resolvedCases, setResolvedCases] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
   const navigate = useNavigate();
   const db = getFirestore();
 
@@ -182,6 +187,33 @@ const HrDashboard = () => {
     } catch (error) {
       console.error("Error signing out:", error);
     }
+  };
+
+  // Analyze image handler
+  const handleAnalyzeImage = async () => {
+    setAnalyzing(true);
+    setAnalysisResult(null);
+    try {
+      let fileToSend;
+      if (selectedFile) {
+        fileToSend = selectedFile;
+      } else {
+        const response = await fetch(DEFAULT_IMAGE_PATH);
+        fileToSend = await response.blob();
+      }
+      const formData = new FormData();
+      formData.append("file", fileToSend, selectedFile ? selectedFile.name : "evidence.jpg");
+
+      const apiResponse = await fetch("http://localhost:8000/detect-deepfake", {
+        method: "POST",
+        body: formData,
+      });
+      const result = await apiResponse.json();
+      setAnalysisResult(result);
+    } catch (error) {
+      setAnalysisResult({ error: "Failed to analyze image." });
+    }
+    setAnalyzing(false);
   };
 
   // Sample data for fallback
@@ -362,6 +394,9 @@ const HrDashboard = () => {
       ]
     },
   ];
+
+  // Helper to determine if we should use sample data
+  const useSampleData = activeCases.length === 0 && resolvedCases.length === 0 && !loading;
 
   const getPriorityColor = (priority) => {
     switch (priority) {
@@ -554,7 +589,7 @@ const HrDashboard = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Under Investigation</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {activeCases.filter((c) => c.status === "Under Investigation").length}
+                  {(useSampleData ? sampleActiveCases : activeCases).filter((c) => c.status === "Under Investigation").length}
                 </p>
               </div>
             </div>
@@ -568,7 +603,7 @@ const HrDashboard = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Resolved</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {resolvedCases.length}
+                  {(useSampleData ? sampleResolvedCases : resolvedCases).length}
                 </p>
               </div>
             </div>
@@ -652,9 +687,12 @@ const HrDashboard = () => {
 
               {/* Cases List */}
               <div className="divide-y divide-gray-200">
-                {(activeTab === "active" ? activeCases : resolvedCases)
-                  .filter(case_ => 
-                    searchTerm === "" || 
+                {(activeTab === "active"
+                  ? (useSampleData ? sampleActiveCases : activeCases)
+                  : (useSampleData ? sampleResolvedCases : resolvedCases)
+                )
+                  .filter(case_ =>
+                    searchTerm === "" ||
                     case_.victimName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                     case_.accusedName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                     case_.companyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -698,26 +736,18 @@ const HrDashboard = () => {
                           <div className="grid grid-cols-2 gap-4 mb-3">
                             <div>
                               <p className="text-sm text-gray-600">
-                                <strong>Victim:</strong> {case_.victimName} {case_.isAnonymous && "(Anonymous)"} ({case_.victimAge} years)
+                                <strong>Victim:</strong> {case_.victimName} ({case_.victimAge} years)
                               </p>
                               <p className="text-sm text-gray-600">
                                 <strong>Accused:</strong> {case_.accusedName} - {case_.accusedPosition}
                               </p>
-                              {case_.ngo && (
-                                <p className="text-sm text-gray-600">
-                                  <strong>NGO:</strong> {case_.ngo}
-                                </p>
-                              )}
                             </div>
                             <div>
                               <p className="text-sm text-gray-600">
                                 <strong>Investigator:</strong> {case_.investigator}
                               </p>
                               <p className="text-sm text-gray-600">
-                                <strong>Witnesses:</strong> {case_.witnesses?.length || 0}
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                <strong>User Email:</strong> {case_.userEmail}
+                                <strong>Witnesses:</strong> {case_.witnesses.length}
                               </p>
                             </div>
                           </div>
@@ -737,20 +767,20 @@ const HrDashboard = () => {
                             </span>
                           </div>
 
-                          {case_.nextSteps && case_.nextSteps.length > 0 && (
-                            <div className="bg-blue-50 p-3 rounded-lg mb-3">
-                              <p className="text-xs text-blue-800 font-medium mb-1">Next Steps:</p>
-                              <ul className="text-xs text-blue-700">
-                                {case_.nextSteps.map((step, index) => (
-                                  <li key={index} className="flex items-center">
-                                    <span className="mr-1">•</span> {step}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
+                            {case_.nextSteps && case_.nextSteps.length > 0 && (
+                              <div className="bg-blue-50 p-3 rounded-lg mb-3">
+                                <p className="text-xs text-blue-800 font-medium mb-1">Next Steps:</p>
+                                <ul className="text-xs text-blue-700">
+                                  {case_.nextSteps.map((step, index) => (
+                                    <li key={index} className="flex items-center">
+                                      <span className="mr-1">•</span> {step}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
 
-                          {case_.responseHistory && case_.responseHistory.length > 0 && (
+                          {case_.responseHistory.length > 0 && (
                             <div className="bg-gray-50 p-3 rounded-lg mb-3">
                               <p className="text-xs text-gray-800">
                                 <strong>Last Update:</strong> {case_.responseHistory[case_.responseHistory.length - 1].response}
@@ -1055,6 +1085,75 @@ const HrDashboard = () => {
             </div>
           </div>
         )}
+
+        {/* Analyze Evidence Image */}
+        <div className="bg-gray-50 p-4 rounded-lg mt-4">
+          <h3 className="font-semibold text-gray-900 mb-3">Evidence Image Analysis</h3>
+          <input
+            type="file"
+            accept="image/jpeg,image/png"
+            className="mb-4"
+            onChange={e => {
+              setSelectedFile(e.target.files[0]);
+              setAnalysisResult(null);
+            }}
+          />
+          <img
+            src={
+              selectedFile
+                ? URL.createObjectURL(selectedFile)
+                : DEFAULT_IMAGE_PATH
+            }
+            alt="Evidence"
+            className="w-full max-w-xs rounded-lg mb-4 border"
+          />
+          <button
+            onClick={handleAnalyzeImage}
+            className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition"
+            disabled={analyzing}
+          >
+            {analyzing ? "Analyzing..." : "Analyze Image"}
+          </button>
+          {analysisResult && (
+            <div className="mt-4">
+              {analysisResult.error ? (
+                <div className="text-red-600">{analysisResult.error}</div>
+              ) : (
+                <>
+                  <div className="mb-2">
+                    <span className="font-semibold">
+                      Result:{" "}
+                      {analysisResult.is_deepfake ? (
+                        <span className="text-red-600">Deepfake Detected</span>
+                      ) : (
+                        <span className="text-green-600">Real Image</span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="mb-2">
+                    <span className="font-semibold">Confidence: </span>
+                    {(analysisResult.confidence_score * 100).toFixed(2)}%
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-4">
+                    <div
+                      className={`h-4 rounded-full ${
+                        analysisResult.is_deepfake
+                          ? "bg-red-500"
+                          : "bg-green-500"
+                      }`}
+                      style={{
+                        width: `${analysisResult.confidence_score * 100}%`,
+                      }}
+                    ></div>
+                  </div>
+                  <div className="mt-2 text-xs text-gray-600">
+                    Fake: {(analysisResult.probabilities.fake * 100).toFixed(2)}% | Real: {(analysisResult.probabilities.real * 100).toFixed(2)}%
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
