@@ -1,7 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
-import { getFirestore, doc, getDoc, collection, getDocs, addDoc, updateDoc, query, where, orderBy } from "firebase/firestore";
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  collection,
+  getDocs,
+  addDoc,
+  updateDoc,
+  query,
+  where,
+  orderBy,
+} from "firebase/firestore";
 import { auth } from "../../../firebase.js";
 import {
   AlertCircle,
@@ -80,9 +91,9 @@ const NgoDashboard = () => {
         orderBy("submittedDate", "desc")
       );
       const activeSnapshot = await getDocs(activeQuery);
-      const activeData = activeSnapshot.docs.map(doc => ({
+      const activeData = activeSnapshot.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data()
+        ...doc.data(),
       }));
       setActiveCases(activeData);
 
@@ -93,9 +104,9 @@ const NgoDashboard = () => {
         orderBy("submittedDate", "desc")
       );
       const resolvedSnapshot = await getDocs(resolvedQuery);
-      const resolvedData = resolvedSnapshot.docs.map(doc => ({
+      const resolvedData = resolvedSnapshot.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data()
+        ...doc.data(),
       }));
       setResolvedCases(resolvedData);
     } catch (error) {
@@ -343,20 +354,25 @@ const NgoDashboard = () => {
       try {
         const caseRef = doc(db, "cases", caseToEscalate);
         const escalationRecord = {
-          date: new Date().toISOString().split('T')[0],
+          date: new Date().toISOString().split("T")[0],
           action: "Case Escalated",
           response: `Case escalated: ${escalationReason}`,
-          escalatedBy: user?.name || user?.email || "NGO Staff"
+          escalatedBy: user?.name || user?.email || "NGO Staff",
         };
-        
+
         await updateDoc(caseRef, {
-          responseHistory: [...(selectedCase?.responseHistory || []), escalationRecord],
+          responseHistory: [
+            ...(selectedCase?.responseHistory || []),
+            escalationRecord,
+          ],
           status: "Escalated",
-          lastUpdate: new Date().toISOString().split('T')[0],
-          escalationReason: escalationReason
+          lastUpdate: new Date().toISOString().split("T")[0],
+          escalationReason: escalationReason,
         });
-        
-        console.log(`Case ${caseToEscalate} escalated with reason: ${escalationReason}`);
+
+        console.log(
+          `Case ${caseToEscalate} escalated with reason: ${escalationReason}`
+        );
         setShowEscalationModal(false);
         setEscalationReason("");
         setCaseToEscalate(null);
@@ -372,18 +388,22 @@ const NgoDashboard = () => {
       try {
         const caseRef = doc(db, "cases", selectedCase.id);
         const newResponse = {
-          date: new Date().toISOString().split('T')[0],
+          date: new Date().toISOString().split("T")[0],
           action: "NGO Response",
           response: responseText,
-          responder: user?.name || user?.email || "NGO Staff"
+          responder: user?.name || user?.email || "NGO Staff",
         };
-        
+
         await updateDoc(caseRef, {
-          responseHistory: [...(selectedCase.responseHistory || []), newResponse],
-          lastUpdate: new Date().toISOString().split('T')[0],
-          status: selectedCase.status === "New" ? "In Progress" : selectedCase.status
+          responseHistory: [
+            ...(selectedCase.responseHistory || []),
+            newResponse,
+          ],
+          lastUpdate: new Date().toISOString().split("T")[0],
+          status:
+            selectedCase.status === "New" ? "In Progress" : selectedCase.status,
         });
-        
+
         console.log(`Response sent to case ${selectedCase.id}`);
         setResponseText("");
         setSelectedCase(null);
@@ -569,14 +589,18 @@ const NgoDashboard = () => {
               {/* Cases List */}
               <div className="divide-y divide-gray-200">
                 {(activeTab === "active" ? activeCases : resolvedCases)
-                  .filter(case_ => 
-                    searchTerm === "" || 
-                    case_.victimName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    case_.companyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    case_.id?.toLowerCase().includes(searchTerm.toLowerCase())
+                  .filter(
+                    (case_) =>
+                      searchTerm === "" ||
+                      case_.victimName
+                        ?.toLowerCase()
+                        .includes(searchTerm.toLowerCase()) ||
+                      case_.companyName
+                        ?.toLowerCase()
+                        .includes(searchTerm.toLowerCase()) ||
+                      case_.id?.toLowerCase().includes(searchTerm.toLowerCase())
                   )
-                  .map(
-                  (case_) => (
+                  .map((case_) => (
                     <div
                       key={case_.id}
                       className="p-6 hover:bg-gray-50 transition-colors"
@@ -700,8 +724,7 @@ const NgoDashboard = () => {
                         </div>
                       </div>
                     </div>
-                  )
-                )}
+                  ))}
               </div>
             </div>
           </div>

@@ -7,6 +7,7 @@ import LandingPage from "./Pages/LandingPage";
 import UserDashboard from "./Pages/Dashboard/UserDashboard.jsx";
 import NgoDashboard from "./Pages/Dashboard/NgoDashboard.jsx";
 import HrDashboard from "./Pages/Dashboard/HrDashboard.jsx";
+import POSHExplainer from "./Pages/POSHExplainer.jsx";
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         <Route path="/dashboard/:role" element={<UserDashboard />} />
         <Route path="/NGO" element={<NgoDashboard />} />
         <Route path="/HR" element={<HrDashboard />} />
+        <Route path="/posh-explainer" element={<POSHExplainer />} />
         {/* Redirects for convenience */}
         <Route path="/dashboard/NGO" element={<Navigate to="/NGO" />} />
         <Route path="/dashboard/HR" element={<Navigate to="/HR" />} />
