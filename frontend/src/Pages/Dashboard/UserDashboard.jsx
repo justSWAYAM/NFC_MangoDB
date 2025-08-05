@@ -23,7 +23,11 @@ import {
   Lock,
   Eye,
   Bell,
-  Activity
+  Activity,
+  LogOut,
+  Menu,
+  X,
+  EyeOff
 } from "lucide-react";
 import {
   collection,

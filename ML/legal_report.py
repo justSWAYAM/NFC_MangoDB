@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 
 from flask import Flask, request, send_file, abort
+from flask_cors import CORS
 from PIL import Image
 import pytesseract
 import google.generativeai as genai
@@ -27,13 +28,22 @@ genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 model = genai.GenerativeModel("gemini-1.5-flash")
 
 app = Flask(__name__)
+CORS(app)
 
 # -----------------------------------------------------------------------------
 # Utility helpers
 # -----------------------------------------------------------------------------
 def run_ocr(image_bytes: bytes) -> str:
-    img = Image.open(io.BytesIO(image_bytes))
-    return pytesseract.image_to_string(img, lang=OCR_LANG).strip()
+    try:
+        img = Image.open(io.BytesIO(image_bytes))
+        return pytesseract.image_to_string(img, lang=OCR_LANG).strip()
+    except Exception as e:
+        if "tesseract" in str(e).lower():
+            # If Tesseract is not installed, return a placeholder text
+            return "TEXT_EXTRACTED_FROM_IMAGE: [OCR not available - Tesseract not installed]"
+        else:
+            # For other OCR errors, return a generic message
+            return "TEXT_EXTRACTED_FROM_IMAGE: [OCR processing failed]"
 
 def extract_sender(ocr_text: str) -> str:
     first_line = next((ln for ln in ocr_text.splitlines() if ln.strip()), "")

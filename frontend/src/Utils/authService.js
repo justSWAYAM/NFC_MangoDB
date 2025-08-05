@@ -3,7 +3,8 @@ import {
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
   GoogleAuthProvider, 
-  signInWithPopup 
+  signInWithRedirect,
+  getRedirectResult
 } from 'firebase/auth';
 import { 
   getFirestore, 
@@ -45,38 +46,43 @@ const authService = {
 
   async signInWithGoogle(role = null) {
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
+      // Use redirect instead of popup to avoid COOP issues
+      await signInWithRedirect(auth, googleProvider);
+      return { success: true, redirecting: true };
+    } catch (error) {
+      return { error: error.message, success: false };
+    }
+  },
 
-      const userDocRef = doc(db, "users", user.uid);
-      const docSnap = await getDoc(userDocRef);
+  async handleRedirectResult() {
+    try {
+      const result = await getRedirectResult(auth);
+      if (result) {
+        const user = result.user;
+        const userDocRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(userDocRef);
 
-      if (!docSnap.exists()) {
-        // If role is provided, use it, otherwise default to "User"
-        await setDoc(userDocRef, {
-          uid: user.uid,
-          email: user.email,
-          name: user.displayName,
-          role: role || "User",
-          createdAt: new Date().toISOString(),
-          lastLogin: new Date().toISOString()
-        });
-      } else {
-        // Update last login time and role if provided
-        const updateData = {
-          lastLogin: new Date().toISOString()
-        };
-        if (role) {
-          updateData.role = role;
+        if (!docSnap.exists()) {
+          await setDoc(userDocRef, {
+            uid: user.uid,
+            email: user.email,
+            name: user.displayName,
+            role: "User",
+            createdAt: new Date().toISOString(),
+            lastLogin: new Date().toISOString()
+          });
+        } else {
+          await setDoc(userDocRef, {
+            lastLogin: new Date().toISOString()
+          }, { merge: true });
         }
-        await setDoc(userDocRef, updateData, { merge: true });
+
+        const updatedDocSnap = await getDoc(userDocRef);
+        const userData = updatedDocSnap.data();
+
+        return { user, role: userData.role, success: true };
       }
-
-      // Return user data including role
-      const updatedDocSnap = await getDoc(userDocRef);
-      const userData = updatedDocSnap.data();
-
-      return { user, role: userData.role, success: true };
+      return { success: false };
     } catch (error) {
       return { error: error.message, success: false };
     }

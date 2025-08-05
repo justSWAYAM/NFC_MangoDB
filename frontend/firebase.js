@@ -24,4 +24,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider;
 
+// Configure auth to use redirect instead of popup to avoid COOP issues
+auth.useDeviceLanguage();
+
 export { app, auth, db };

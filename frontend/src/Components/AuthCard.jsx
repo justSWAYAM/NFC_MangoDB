@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -36,6 +36,32 @@ const AuthComponent = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // Handle redirect result when component mounts
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      try {
+        const result = await authService.handleRedirectResult();
+        if (result.success) {
+          // Check if user exists in Firestore
+          const userDoc = await getDoc(doc(db, "users", result.user.uid));
+          if (userDoc.exists()) {
+            // If user exists, redirect to dashboard with their role
+            navigate(`/dashboard/${userDoc.data().role}`);
+          } else {
+            // Only show role selection for new users
+            setSuccess('Successfully signed in with Google! Please select your role.');
+            setShowRoleModal(true);
+          }
+        }
+      } catch (err) {
+        console.error('Redirect Result Error:', err);
+        setError('Failed to complete Google sign-in. Please try again.');
+      }
+    };
+
+    handleRedirectResult();
+  }, [navigate]);
+
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
@@ -51,24 +77,17 @@ const AuthComponent = () => {
 
     try {
       const result = await authService.signInWithGoogle();
-      if (result.success) {
-        // Check if user exists in Firestore
-        const userDoc = await getDoc(doc(db, "users", result.user.uid));
-        if (userDoc.exists()) {
-          // If user exists, redirect to dashboard with their role
-          navigate(`/dashboard/${userDoc.data().role}`);
-        } else {
-          // Only show role selection for new users
-          setSuccess('Successfully signed in with Google! Please select your role.');
-          setShowRoleModal(true);
-        }
+      if (result.success && result.redirecting) {
+        // User will be redirected to Google, then back to this component
+        // The redirect result will be handled in useEffect
+        setSuccess('Redirecting to Google...');
       } else {
         setError(result.error || 'Failed to sign in with Google');
+        setLoading(false);
       }
     } catch (err) {
       console.error('Google Sign In Error:', err);
       setError('Failed to sign in with Google. Please try again.');
-    } finally {
       setLoading(false);
     }
   };
