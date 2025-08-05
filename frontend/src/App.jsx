@@ -9,6 +9,7 @@ import NgoDashboard from "./Pages/Dashboard/NgoDashboard.jsx";
 import HrDashboard from "./Pages/Dashboard/HrDashboard.jsx";
 import POSHExplainer from "./Pages/POSHExplainer.jsx";
 import Complaint from './Components/Complaint.jsx';
+import CommunityPage from './Pages/CommunityPage.jsx';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
         <Route path="/dashboard/HR" element={<Navigate to="/HR" />} />
         <Route path="/unauthorized" element={<div>Unauthorized Access</div>} />
         <Route path="/complain" element={<Complaint/>} />
+        <Route path="/community" element={<CommunityPage/>} />
         {/* Redirect /signin to /auth */}
         <Route path="/signin" element={<Navigate to="/auth" />} />
       </Routes>
