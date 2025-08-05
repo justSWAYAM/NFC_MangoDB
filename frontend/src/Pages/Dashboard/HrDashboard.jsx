@@ -1160,3 +1160,6 @@ const HrDashboard = () => {
 };
 
 export default HrDashboard;
+
+// Firebase Storage Rules (console)
+

@@ -23,7 +23,8 @@ import {
   Lock,
   Eye,
   Bell,
-  Activity
+  Activity,
+  EyeOff
 } from "lucide-react";
 import { collection, query, where, orderBy, onSnapshot } from "firebase/firestore";
 import { db } from "../../../firebase";
@@ -273,6 +274,14 @@ const DeviDashboard = () => {
                     </span>
                   </div>
                 </div>
+                <button
+                  onClick={() => navigate("/stealth")}
+                  className="bg-gray-800 px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center text-white"
+                  title="Stealth Mode"
+                >
+                  <EyeOff className="h-4 w-4 mr-2" />
+                  Stealth Mode
+                </button>
               </div>
             </div>
           </div>
