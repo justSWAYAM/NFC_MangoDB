@@ -91,16 +91,16 @@ const NgoDashboard = () => {
   const loadCases = async () => {
     try {
       // Load cases from both "cases" and "complaints" collections
-      
+
       // Load from cases collection
       const casesQuery = query(
         collection(db, "cases"),
         orderBy("submittedDate", "desc")
       );
       const casesSnapshot = await getDocs(casesQuery);
-      const casesData = casesSnapshot.docs.map(doc => ({
+      const casesData = casesSnapshot.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data()
+        ...doc.data(),
       }));
 
       // Load from complaints collection
@@ -109,94 +109,109 @@ const NgoDashboard = () => {
         orderBy("createdAt", "desc")
       );
       const complaintsSnapshot = await getDocs(complaintsQuery);
-      const complaintsData = complaintsSnapshot.docs.map(doc => {
+      const complaintsData = complaintsSnapshot.docs.map((doc) => {
         const data = doc.data();
         return {
           id: doc.id,
           ...data,
           // Transform complaint data to match case format
-          victimName: data.userName || 'Anonymous',
-          victimAge: data.victimAge || 'N/A',
-          accusedName: data.accusedName || 'Not specified',
-          accusedPosition: data.accusedPosition || 'Not specified',
-          companyName: data.companyName || 'Not specified',
-          incidentType: data.incidentType || 'Sexual Harassment',
-          harassmentType: data.harassmentType || 'Not specified',
-          priority: data.priority || 'Medium',
-          status: data.status || 'New',
-          submittedDate: data.date || (data.createdAt ? new Date(data.createdAt.seconds * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
-          lastUpdate: data.date || (data.createdAt ? new Date(data.createdAt.seconds * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
-          description: data.description || 'No description provided',
-          location: data.location || 'Not specified',
+          victimName: data.userName || "Anonymous",
+          victimAge: data.victimAge || "N/A",
+          accusedName: data.accusedName || "Not specified",
+          accusedPosition: data.accusedPosition || "Not specified",
+          companyName: data.companyName || "Not specified",
+          incidentType: data.incidentType || "Sexual Harassment",
+          harassmentType: data.harassmentType || "Not specified",
+          priority: data.priority || "Medium",
+          status: data.status || "New",
+          submittedDate:
+            data.date ||
+            (data.createdAt
+              ? new Date(data.createdAt.seconds * 1000)
+                  .toISOString()
+                  .split("T")[0]
+              : new Date().toISOString().split("T")[0]),
+          lastUpdate:
+            data.date ||
+            (data.createdAt
+              ? new Date(data.createdAt.seconds * 1000)
+                  .toISOString()
+                  .split("T")[0]
+              : new Date().toISOString().split("T")[0]),
+          description: data.description || "No description provided",
+          location: data.location || "Not specified",
           witnesses: data.witnesses || [],
           evidence: data.evidenceUrl ? [data.evidenceUrl] : [],
-          emotionalImpact: data.emotionalImpact || 'Not specified',
+          emotionalImpact: data.emotionalImpact || "Not specified",
           requestedSupport: data.requestedSupport || [],
           responseHistory: data.responseHistory || [],
           // Additional fields from actual schema
           isAnonymous: data.isAnonymous || false,
-          ngo: data.ngo || '',
-          userEmail: data.userEmail || 'anonymous'
+          ngo: data.ngo || "",
+          userEmail: data.userEmail || "anonymous",
         };
       });
 
       // Combine cases and complaints
       const allCases = [...casesData, ...complaintsData];
 
-             // Filter for NGO: Show cases that are NOT workplace-related or are public/community incidents
-       const ngoRelevantCases = allCases.filter(case_ => {
-         const location = case_.location?.toLowerCase() || '';
-         const incidentType = case_.incidentType?.toLowerCase() || '';
-         
-         // Exclude cases that are clearly workplace-related
-         const isWorkplaceRelated = location.includes('office') || 
-                                   location.includes('workplace') || 
-                                   location.includes('company') ||
-                                   location.includes('work') ||
-                                   location.includes('corporate') ||
-                                   location.includes('business') ||
-                                   location.includes('firm') ||
-                                   location.includes('enterprise');
-         
-         // Include cases that are:
-         // 1. NOT workplace-related (public places, community, etc.)
-         // 2. Workplace discrimination (NGOs often handle these)
-         // 3. Cases with "pending" status (new complaints)
-         // 4. Cases with public/community locations
-         
-         const isDiscrimination = incidentType.includes('discrimination');
-         const isPending = case_.status === 'pending' || case_.status === 'Pending';
-         const isPublicPlace = location.includes('public') || 
-                              location.includes('community') || 
-                              location.includes('street') ||
-                              location.includes('transport') ||
-                              location.includes('online') ||
-                              location.includes('digital') ||
-                              location.includes('social media') ||
-                              location.includes('educational') ||
-                              location.includes('university') ||
-                              location.includes('college') ||
-                              location.includes('school');
-         
-         // First, exclude all workplace-related cases
-         if (isWorkplaceRelated) {
-           return false;
-         }
-         
-         // Then include non-workplace cases, discrimination cases, pending cases, or public place cases
-         return true || isDiscrimination || isPending || isPublicPlace;
-       });
+      // Filter for NGO: Show cases that are NOT workplace-related or are public/community incidents
+      const ngoRelevantCases = allCases.filter((case_) => {
+        const location = case_.location?.toLowerCase() || "";
+        const incidentType = case_.incidentType?.toLowerCase() || "";
+
+        // Exclude cases that are clearly workplace-related
+        const isWorkplaceRelated =
+          location.includes("office") ||
+          location.includes("workplace") ||
+          location.includes("company") ||
+          location.includes("work") ||
+          location.includes("corporate") ||
+          location.includes("business") ||
+          location.includes("firm") ||
+          location.includes("enterprise");
+
+        // Include cases that are:
+        // 1. NOT workplace-related (public places, community, etc.)
+        // 2. Workplace discrimination (NGOs often handle these)
+        // 3. Cases with "pending" status (new complaints)
+        // 4. Cases with public/community locations
+
+        const isDiscrimination = incidentType.includes("discrimination");
+        const isPending =
+          case_.status === "pending" || case_.status === "Pending";
+        const isPublicPlace =
+          location.includes("public") ||
+          location.includes("community") ||
+          location.includes("street") ||
+          location.includes("transport") ||
+          location.includes("online") ||
+          location.includes("digital") ||
+          location.includes("social media") ||
+          location.includes("educational") ||
+          location.includes("university") ||
+          location.includes("college") ||
+          location.includes("school");
+
+        // First, exclude all workplace-related cases
+        if (isWorkplaceRelated) {
+          return false;
+        }
+
+        // Then include non-workplace cases, discrimination cases, pending cases, or public place cases
+        return true || isDiscrimination || isPending || isPublicPlace;
+      });
 
       // Separate active and resolved cases
-      const active = ngoRelevantCases.filter(case_ => 
-        case_.status === "New" || 
-        case_.status === "In Progress" || 
-        case_.status === "pending" ||
-        case_.status === "Pending"
+      const active = ngoRelevantCases.filter(
+        (case_) =>
+          case_.status === "New" ||
+          case_.status === "In Progress" ||
+          case_.status === "pending" ||
+          case_.status === "Pending"
       );
-      const resolved = ngoRelevantCases.filter(case_ => 
-        case_.status === "Resolved" || 
-        case_.status === "Closed"
+      const resolved = ngoRelevantCases.filter(
+        (case_) => case_.status === "Resolved" || case_.status === "Closed"
       );
 
       setActiveCases(active);
@@ -231,7 +246,11 @@ const NgoDashboard = () => {
         fileToSend = await response.blob();
       }
       const formData = new FormData();
-      formData.append("file", fileToSend, selectedFile ? selectedFile.name : "evidence.jpg");
+      formData.append(
+        "file",
+        fileToSend,
+        selectedFile ? selectedFile.name : "evidence.jpg"
+      );
 
       const apiResponse = await fetch("http://localhost:8000/detect-deepfake", {
         method: "POST",
@@ -262,13 +281,13 @@ const NgoDashboard = () => {
       lastUpdate: "2024-01-15",
       location: "Public Place",
       witnesses: ["Jane Doe", "John Smith"],
-      evidence: ["Email screenshots", "Audio recording", "https://example.com/evidence1.jpg"],
-      emotionalImpact: "High stress, anxiety, difficulty sleeping",
-      requestedSupport: [
-        "Legal advice",
-        "Counseling",
-        "Support group",
+      evidence: [
+        "Email screenshots",
+        "Audio recording",
+        "https://example.com/evidence1.jpg",
       ],
+      emotionalImpact: "High stress, anxiety, difficulty sleeping",
+      requestedSupport: ["Legal advice", "Counseling", "Support group"],
       responseHistory: [],
     },
     {
@@ -286,7 +305,11 @@ const NgoDashboard = () => {
       lastUpdate: "2024-01-16",
       location: "Public Transport",
       witnesses: ["Mike Johnson"],
-      evidence: ["Security camera footage", "Witness statements", "https://example.com/evidence2.jpg"],
+      evidence: [
+        "Security camera footage",
+        "Witness statements",
+        "https://example.com/evidence2.jpg",
+      ],
       emotionalImpact: "Fear, anxiety, avoiding public transport",
       requestedSupport: [
         "Immediate intervention",
@@ -317,7 +340,11 @@ const NgoDashboard = () => {
       lastUpdate: "2024-01-14",
       location: "Community Event",
       witnesses: ["Multiple attendees"],
-      evidence: ["Documented incidents", "Witness statements", "https://example.com/evidence3.jpg"],
+      evidence: [
+        "Documented incidents",
+        "Witness statements",
+        "https://example.com/evidence3.jpg",
+      ],
       emotionalImpact:
         "Depression, loss of confidence, avoiding community events",
       requestedSupport: [
@@ -351,10 +378,15 @@ const NgoDashboard = () => {
       lastUpdate: "2024-01-13",
       location: "Digital/Online",
       witnesses: ["Email evidence"],
-      evidence: ["Screenshots", "Email records", "https://example.com/evidence4.jpg"],
+      evidence: [
+        "Screenshots",
+        "Email records",
+        "https://example.com/evidence4.jpg",
+      ],
       emotionalImpact: "Stress, violation of privacy",
       requestedSupport: ["Digital safety training", "Legal protection"],
-      resolution: "Perpetrator blocked, legal action taken, victim received support",
+      resolution:
+        "Perpetrator blocked, legal action taken, victim received support",
       responseHistory: [
         {
           date: "2024-01-07",
@@ -364,7 +396,8 @@ const NgoDashboard = () => {
         {
           date: "2024-01-10",
           action: "Legal action taken",
-          response: "Filed formal complaint with platform and legal authorities",
+          response:
+            "Filed formal complaint with platform and legal authorities",
         },
         {
           date: "2024-01-13",
@@ -389,10 +422,15 @@ const NgoDashboard = () => {
       lastUpdate: "2024-01-11",
       location: "Educational Institution",
       witnesses: ["None - private meeting"],
-      evidence: ["Documented conversations", "Application records", "https://example.com/evidence5.jpg"],
+      evidence: [
+        "Documented conversations",
+        "Application records",
+        "https://example.com/evidence5.jpg",
+      ],
       emotionalImpact: "Career anxiety, moral distress",
       requestedSupport: ["Legal protection", "Educational guidance"],
-      resolution: "Institution policy changed, victim received equal opportunities",
+      resolution:
+        "Institution policy changed, victim received equal opportunities",
       responseHistory: [
         {
           date: "2024-01-04",
@@ -407,7 +445,8 @@ const NgoDashboard = () => {
         {
           date: "2024-01-11",
           action: "Resolution achieved",
-          response: "Victim received equal opportunities, institution policy changed",
+          response:
+            "Victim received equal opportunities, institution policy changed",
         },
       ],
     },
@@ -536,7 +575,7 @@ const NgoDashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-gradient-to-r from-purple-800 to-pink-800 text-white shadow-lg">
+      <header className="bg-red-200 text-white shadow-lg">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
@@ -554,7 +593,7 @@ const NgoDashboard = () => {
               )}
             </div>
             <div className="flex items-center space-x-4">
-              <div className="bg-white/20 px-4 py-2 rounded-lg">
+              <div className="bg-green-500 px-4 py-2 rounded-lg">
                 <span className="text-sm font-medium">
                   Active Cases: {activeCases.length}
                 </span>
@@ -567,7 +606,7 @@ const NgoDashboard = () => {
               </div>
               <button
                 onClick={handleLogout}
-                className="bg-white/20 px-4 py-2 rounded-lg hover:bg-white/30 transition-colors flex items-center"
+                className="bg-black px-4 py-2 rounded-lg hover:bg-black/50 transition-colors flex items-center"
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout
@@ -579,12 +618,12 @@ const NgoDashboard = () => {
 
       <div className="max-w-7xl mx-auto p-6">
         {/* Emergency Banner */}
-        <div className="bg-red-600 text-white p-4 rounded-lg mb-6 flex items-center justify-between">
+        <div className="bg-red-200 text-red-800 p-4 rounded-lg mb-6 flex items-center justify-between">
           <div className="flex items-center">
             <AlertTriangle className="h-6 w-6 mr-3" />
             <div>
               <h3 className="font-bold">24/7 Crisis Support Available</h3>
-              <p className="text-red-100">
+              <p className="text-red-800">
                 Immediate assistance for victims of sexual harassment
               </p>
             </div>
@@ -857,19 +896,19 @@ const NgoDashboard = () => {
                 Quick Actions
               </h3>
               <div className="space-y-3">
-                <button className="w-full flex items-center px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                <button className="w-full flex items-center p-3 bg-red-200 border border-red-800 rounded-lg">
                   <Phone className="h-4 w-4 mr-3" />
                   Emergency Hotline
                 </button>
-                <button className="w-full flex items-center px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                <button className="w-full flex items-center p-3 bg-purple-200 border border-purple-800 rounded-lg">
                   <FileText className="h-4 w-4 mr-3" />
                   Generate Report
                 </button>
-                <button className="w-full flex items-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                <button className="w-full flex items-center p-3 bg-blue-200 border border-blue-800 rounded-lg">
                   <Calendar className="h-4 w-4 mr-3" />
                   Schedule Support Session
                 </button>
-                <button className="w-full flex items-center px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                <button className="w-full flex items-center p-3 bg-green-200 border border-green-800 rounded-lg">
                   <Users className="h-4 w-4 mr-3" />
                   Connect Volunteer
                 </button>
@@ -1023,12 +1062,19 @@ const NgoDashboard = () => {
                     </h3>
                     <div className="space-y-4">
                       <div>
-                        <p className="text-sm font-medium mb-2"><strong>Evidence:</strong></p>
+                        <p className="text-sm font-medium mb-2">
+                          <strong>Evidence:</strong>
+                        </p>
                         <ul className="list-disc list-inside ml-2 text-sm">
                           {selectedCase.evidence?.map((item, index) => (
                             <li key={index}>
-                              {item.startsWith('http') ? (
-                                <a href={item} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                              {item.startsWith("http") ? (
+                                <a
+                                  href={item}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:underline"
+                                >
                                   View Evidence
                                 </a>
                               ) : (
@@ -1038,9 +1084,11 @@ const NgoDashboard = () => {
                           )) || <li>No evidence provided</li>}
                         </ul>
                       </div>
-                      
+
                       <div>
-                        <p className="text-sm font-medium mb-2"><strong>Witnesses:</strong></p>
+                        <p className="text-sm font-medium mb-2">
+                          <strong>Witnesses:</strong>
+                        </p>
                         <ul className="list-disc list-inside ml-2 text-sm">
                           {selectedCase.witnesses?.map((witness, index) => (
                             <li key={index}>{witness}</li>
@@ -1051,162 +1099,197 @@ const NgoDashboard = () => {
                   </div>
 
                   {/* Evidence Image Analysis Section - Enhanced */}
-                  {selectedCase.evidence && selectedCase.evidence.length > 0 && (
-                    <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg">
-                      <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
-                        <AlertTriangle className="h-5 w-5 mr-2 text-orange-600" />
-                        Evidence Image Analysis
-                      </h3>
-                      
-                      <div className="space-y-4">
-                        {/* Image Upload and Preview */}
-                        <div className="flex items-start space-x-4">
-                          <div className="flex-1">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Upload or Select Evidence Image
-                            </label>
-                            <input
-                              type="file"
-                              accept="image/jpeg,image/png"
-                              className="w-full text-sm border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                              onChange={e => {
-                                setSelectedFile(e.target.files[0]);
-                                setAnalysisResult(null);
-                              }}
-                            />
+                  {selectedCase.evidence &&
+                    selectedCase.evidence.length > 0 && (
+                      <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg">
+                        <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
+                          <AlertTriangle className="h-5 w-5 mr-2 text-orange-600" />
+                          Evidence Image Analysis
+                        </h3>
+
+                        <div className="space-y-4">
+                          {/* Image Upload and Preview */}
+                          <div className="flex items-start space-x-4">
+                            <div className="flex-1">
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Upload or Select Evidence Image
+                              </label>
+                              <input
+                                type="file"
+                                accept="image/jpeg,image/png"
+                                className="w-full text-sm border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                onChange={(e) => {
+                                  setSelectedFile(e.target.files[0]);
+                                  setAnalysisResult(null);
+                                }}
+                              />
+                            </div>
+                            <button
+                              onClick={handleAnalyzeImage}
+                              className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center disabled:opacity-50"
+                              disabled={analyzing}
+                            >
+                              {analyzing ? (
+                                <>
+                                  <Clock className="h-4 w-4 mr-2 animate-spin" />
+                                  Analyzing...
+                                </>
+                              ) : (
+                                <>
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  Analyze Image
+                                </>
+                              )}
+                            </button>
                           </div>
-                          <button
-                            onClick={handleAnalyzeImage}
-                            className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center disabled:opacity-50"
-                            disabled={analyzing}
-                          >
-                            {analyzing ? (
-                              <>
-                                <Clock className="h-4 w-4 mr-2 animate-spin" />
-                                Analyzing...
-                              </>
-                            ) : (
-                              <>
-                                <Eye className="h-4 w-4 mr-2" />
-                                Analyze Image
-                              </>
-                            )}
-                          </button>
-                        </div>
-                        
-                        {/* Image Preview */}
-                        <div className="flex items-center space-x-4 p-3 bg-white rounded-lg border">
-                          <img
-                            src={
-                              selectedFile
-                                ? URL.createObjectURL(selectedFile)
-                                : selectedCase.evidence[0]?.startsWith('http') 
-                                  ? selectedCase.evidence[0] 
+
+                          {/* Image Preview */}
+                          <div className="flex items-center space-x-4 p-3 bg-white rounded-lg border">
+                            <img
+                              src={
+                                selectedFile
+                                  ? URL.createObjectURL(selectedFile)
+                                  : selectedCase.evidence[0]?.startsWith("http")
+                                  ? selectedCase.evidence[0]
                                   : DEFAULT_IMAGE_PATH
-                            }
-                            alt="Evidence"
-                            className="w-24 h-24 object-cover rounded-lg border shadow-sm"
-                          />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-900">
-                              {selectedFile ? selectedFile.name : "Evidence Image"}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              Click "Analyze Image" to detect potential deepfakes
-                            </p>
+                              }
+                              alt="Evidence"
+                              className="w-24 h-24 object-cover rounded-lg border shadow-sm"
+                            />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-gray-900">
+                                {selectedFile
+                                  ? selectedFile.name
+                                  : "Evidence Image"}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                Click "Analyze Image" to detect potential
+                                deepfakes
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                        
-                        {/* Analysis Results */}
-                        {analysisResult && (
-                          <div className="bg-white p-4 rounded-lg border shadow-sm">
-                            <h4 className="font-medium text-gray-900 mb-3 flex items-center">
-                              <Shield className="h-4 w-4 mr-2 text-blue-600" />
-                              Analysis Results
-                            </h4>
-                            
-                            {analysisResult.error ? (
-                              <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg border border-red-200">
-                                <AlertOctagon className="h-4 w-4 inline mr-2" />
-                                {analysisResult.error}
-                              </div>
-                            ) : (
-                              <div className="space-y-4">
-                                {/* Result Summary */}
-                                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                  <span className="text-sm font-medium text-gray-700">Analysis Result:</span>
-                                  <span className={`px-3 py-1 rounded-full text-sm font-bold ${
-                                    analysisResult.is_deepfake 
-                                      ? 'bg-red-100 text-red-800 border border-red-200' 
-                                      : 'bg-green-100 text-green-800 border border-green-200'
-                                  }`}>
-                                    {analysisResult.is_deepfake ? '🚨 Deepfake Detected' : '✅ Real Image'}
-                                  </span>
+
+                          {/* Analysis Results */}
+                          {analysisResult && (
+                            <div className="bg-white p-4 rounded-lg border shadow-sm">
+                              <h4 className="font-medium text-gray-900 mb-3 flex items-center">
+                                <Shield className="h-4 w-4 mr-2 text-blue-600" />
+                                Analysis Results
+                              </h4>
+
+                              {analysisResult.error ? (
+                                <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg border border-red-200">
+                                  <AlertOctagon className="h-4 w-4 inline mr-2" />
+                                  {analysisResult.error}
                                 </div>
-                                
-                                {/* Confidence Score */}
-                                <div className="space-y-2">
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium text-gray-700">Confidence Score:</span>
-                                    <span className="text-sm font-bold text-gray-900">
-                                      {(analysisResult.confidence_score * 100).toFixed(1)}%
+                              ) : (
+                                <div className="space-y-4">
+                                  {/* Result Summary */}
+                                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <span className="text-sm font-medium text-gray-700">
+                                      Analysis Result:
+                                    </span>
+                                    <span
+                                      className={`px-3 py-1 rounded-full text-sm font-bold ${
+                                        analysisResult.is_deepfake
+                                          ? "bg-red-100 text-red-800 border border-red-200"
+                                          : "bg-green-100 text-green-800 border border-green-200"
+                                      }`}
+                                    >
+                                      {analysisResult.is_deepfake
+                                        ? "🚨 Deepfake Detected"
+                                        : "✅ Real Image"}
                                     </span>
                                   </div>
-                                  <div className="w-full bg-gray-200 rounded-full h-3">
-                                    <div
-                                      className={`h-3 rounded-full transition-all duration-300 ${
+
+                                  {/* Confidence Score */}
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm font-medium text-gray-700">
+                                        Confidence Score:
+                                      </span>
+                                      <span className="text-sm font-bold text-gray-900">
+                                        {(
+                                          analysisResult.confidence_score * 100
+                                        ).toFixed(1)}
+                                        %
+                                      </span>
+                                    </div>
+                                    <div className="w-full bg-gray-200 rounded-full h-3">
+                                      <div
+                                        className={`h-3 rounded-full transition-all duration-300 ${
+                                          analysisResult.is_deepfake
+                                            ? "bg-red-500"
+                                            : "bg-green-500"
+                                        }`}
+                                        style={{
+                                          width: `${
+                                            analysisResult.confidence_score *
+                                            100
+                                          }%`,
+                                        }}
+                                      ></div>
+                                    </div>
+                                  </div>
+
+                                  {/* Probability Breakdown */}
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div className="text-center p-3 bg-red-50 rounded-lg border border-red-200">
+                                      <p className="text-xs text-red-600 font-medium">
+                                        FAKE PROBABILITY
+                                      </p>
+                                      <p className="text-lg font-bold text-red-800">
+                                        {(
+                                          analysisResult.probabilities.fake *
+                                          100
+                                        ).toFixed(1)}
+                                        %
+                                      </p>
+                                    </div>
+                                    <div className="text-center p-3 bg-green-50 rounded-lg border border-green-200">
+                                      <p className="text-xs text-green-600 font-medium">
+                                        REAL PROBABILITY
+                                      </p>
+                                      <p className="text-lg font-bold text-green-800">
+                                        {(
+                                          analysisResult.probabilities.real *
+                                          100
+                                        ).toFixed(1)}
+                                        %
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  {/* Recommendation */}
+                                  <div
+                                    className={`p-3 rounded-lg border ${
+                                      analysisResult.is_deepfake
+                                        ? "bg-red-50 border-red-200"
+                                        : "bg-green-50 border-green-200"
+                                    }`}
+                                  >
+                                    <p className="text-sm font-medium text-gray-900 mb-1">
+                                      Recommendation:
+                                    </p>
+                                    <p
+                                      className={`text-sm ${
                                         analysisResult.is_deepfake
-                                          ? "bg-red-500"
-                                          : "bg-green-500"
+                                          ? "text-red-700"
+                                          : "text-green-700"
                                       }`}
-                                      style={{
-                                        width: `${analysisResult.confidence_score * 100}%`,
-                                      }}
-                                    ></div>
-                                  </div>
-                                </div>
-                                
-                                {/* Probability Breakdown */}
-                                <div className="grid grid-cols-2 gap-4">
-                                  <div className="text-center p-3 bg-red-50 rounded-lg border border-red-200">
-                                    <p className="text-xs text-red-600 font-medium">FAKE PROBABILITY</p>
-                                    <p className="text-lg font-bold text-red-800">
-                                      {(analysisResult.probabilities.fake * 100).toFixed(1)}%
-                                    </p>
-                                  </div>
-                                  <div className="text-center p-3 bg-green-50 rounded-lg border border-green-200">
-                                    <p className="text-xs text-green-600 font-medium">REAL PROBABILITY</p>
-                                    <p className="text-lg font-bold text-green-800">
-                                      {(analysisResult.probabilities.real * 100).toFixed(1)}%
+                                    >
+                                      {analysisResult.is_deepfake
+                                        ? "⚠️ This image appears to be manipulated. Consider additional verification before using as evidence."
+                                        : "✅ This image appears to be authentic and can be used as evidence."}
                                     </p>
                                   </div>
                                 </div>
-                                
-                                {/* Recommendation */}
-                                <div className={`p-3 rounded-lg border ${
-                                  analysisResult.is_deepfake 
-                                    ? 'bg-red-50 border-red-200' 
-                                    : 'bg-green-50 border-green-200'
-                                }`}>
-                                  <p className="text-sm font-medium text-gray-900 mb-1">Recommendation:</p>
-                                  <p className={`text-sm ${
-                                    analysisResult.is_deepfake 
-                                      ? 'text-red-700' 
-                                      : 'text-green-700'
-                                  }`}>
-                                    {analysisResult.is_deepfake 
-                                      ? '⚠️ This image appears to be manipulated. Consider additional verification before using as evidence.'
-                                      : '✅ This image appears to be authentic and can be used as evidence.'
-                                    }
-                                  </p>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <h3 className="font-semibold text-gray-900 mb-3">

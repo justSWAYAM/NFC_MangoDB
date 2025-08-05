@@ -9,9 +9,6 @@ import NgoDashboard from "./Pages/Dashboard/NgoDashboard.jsx";
 import HrDashboard from "./Pages/Dashboard/HrDashboard.jsx";
 import POSHExplainer from "./Pages/POSHExplainer.jsx";
 import Complaint from './Components/Complaint.jsx';
-import Stealth from "./Pages/Stealth.jsx";
-import CommunityPage from "./Pages/CommunityPage.jsx";
-import AgenticAI from "./Pages/AgenticAI.jsx";
 
 function App() {
   return (
@@ -24,7 +21,6 @@ function App() {
         <Route path="/HR" element={<HrDashboard />} />
         <Route path="/posh-explainer" element={<POSHExplainer />} />
         <Route path="/stealth" element={<Stealth />} />
-        <Route path="/agentic" element={<AgenticAI />} />
         {/* Redirects for convenience */}
         <Route path="/dashboard/NGO" element={<Navigate to="/NGO" />} />
         <Route path="/dashboard/HR" element={<Navigate to="/HR" />} />

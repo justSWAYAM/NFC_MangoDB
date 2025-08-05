@@ -41,6 +41,7 @@ const ComplaintModal = ({ open, onClose, user }) => {
   const [addNgo, setAddNgo] = useState(false);
   const [ngoName, setNgoName] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [generatingReport, setGeneratingReport] = useState(false);
 
   useEffect(() => {
     if (open) setStep(0);
@@ -67,6 +68,47 @@ const ComplaintModal = ({ open, onClose, user }) => {
         1000
       );
     });
+  };
+
+  // Generate legal report from evidence
+  const generateLegalReport = async () => {
+    if (!evidenceFile) {
+      alert("Please upload evidence first");
+      return;
+    }
+
+    setGeneratingReport(true);
+    try {
+      const formData = new FormData();
+      formData.append("evidence", evidenceFile);
+
+      const response = await fetch("http://127.0.0.1:5000/generate_report", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Get the PDF blob
+      const pdfBlob = await response.blob();
+      
+      // Create a URL for the blob
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      
+      // Open PDF in new tab
+      window.open(pdfUrl, "_blank");
+      
+      // Clean up the URL object after a delay
+      setTimeout(() => URL.revokeObjectURL(pdfUrl), 1000);
+      
+    } catch (error) {
+      console.error("Error generating legal report:", error);
+      alert("Failed to generate legal report. Please try again.");
+    } finally {
+      setGeneratingReport(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -204,12 +246,23 @@ const ComplaintModal = ({ open, onClose, user }) => {
                 <span className="text-gray-700">Add Evidence (JPG only)</span>
               </label>
               {addEvidence && (
-                <input
-                  type="file"
-                  accept="image/jpeg"
-                  className="block"
-                  onChange={(e) => setEvidenceFile(e.target.files[0])}
-                />
+                <div className="space-y-2">
+                  <input
+                    type="file"
+                    accept="image/jpeg"
+                    className="block"
+                    onChange={(e) => setEvidenceFile(e.target.files[0])}
+                  />
+                  {evidenceFile && (
+                    <button
+                      onClick={generateLegalReport}
+                      disabled={generatingReport}
+                      className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 disabled:bg-blue-300 disabled:cursor-not-allowed text-sm"
+                    >
+                      {generatingReport ? "Generating Report..." : "Generate Legal Report"}
+                    </button>
+                  )}
+                </div>
               )}
               <label className="flex items-center gap-2">
                 <input

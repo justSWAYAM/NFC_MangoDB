@@ -23,11 +23,7 @@ import {
   Lock,
   Eye,
   Bell,
-  Activity,
-  LogOut, // <-- Add this line
-  EyeOff, // <-- Also add this if you use <EyeOff />
-  X,      // <-- For mobile menu close icon
-  Menu    // <-- For mobile menu open icon
+  Activity
 } from "lucide-react";
 import {
   collection,
