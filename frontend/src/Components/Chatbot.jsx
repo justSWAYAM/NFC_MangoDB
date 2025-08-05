@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, Send, X, Bot, User } from "lucide-react";
+import axios from "axios";
 
 const Chatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -90,11 +91,45 @@ const Chatbot = () => {
     setIsTyping(true);
 
     setTimeout(() => {
-      const botResponse = {
-        id: messages.length + 2,
-        text: getBotResponse(inputText),
-        isUser: false,
-        timestamp: new Date(),
+      const handleSendMessage = async () => {
+        if (!inputText.trim()) return;
+
+        const userMessage = {
+          id: messages.length + 1,
+          text: inputText,
+          isUser: true,
+          timestamp: new Date(),
+        };
+
+        setMessages((prev) => [...prev, userMessage]);
+        setInputText("");
+        setIsTyping(true);
+
+        try {
+          const res = await axios.post("http://localhost:8000/chat", {
+            message: inputText,
+          });
+
+          const botResponse = {
+            id: messages.length + 2,
+            text: res.data.response || "Sorry, I couldn't understand that.",
+            isUser: false,
+            timestamp: new Date(),
+          };
+
+          setMessages((prev) => [...prev, botResponse]);
+        } catch (error) {
+          console.error("Error calling chatbot:", error);
+          const botResponse = {
+            id: messages.length + 2,
+            text: "Something went wrong while contacting the POSH assistant.",
+            isUser: false,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, botResponse]);
+        } finally {
+          setIsTyping(false);
+        }
       };
 
       setMessages((prev) => [...prev, botResponse]);
