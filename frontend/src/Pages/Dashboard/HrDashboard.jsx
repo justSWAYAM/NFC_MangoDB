@@ -961,31 +961,352 @@ const HrDashboard = () => {
                     </div>
                   </div>
 
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h3 className="font-semibold text-gray-900 mb-3">Evidence & Witnesses</h3>
-                    <div className="space-y-2 text-sm">
-                      <p><strong>Evidence:</strong></p>
-                      <ul className="list-disc list-inside ml-2">
-                        {selectedCase.evidence?.map((item, index) => (
-                          <li key={index}>
-                            {item.startsWith('http') ? (
-                              <a href={item} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                                View Evidence
-                              </a>
-                            ) : (
-                              item
-                            )}
-                          </li>
-                        )) || <li>No evidence provided</li>}
-                      </ul>
-                      <p className="mt-2"><strong>Witnesses:</strong></p>
-                      <ul className="list-disc list-inside ml-2">
-                        {selectedCase.witnesses?.map((witness, index) => (
-                          <li key={index}>{witness}</li>
-                        )) || <li>No witnesses listed</li>}
-                      </ul>
-                    </div>
-                  </div>
+                                     <div className="bg-gray-50 p-4 rounded-lg">
+                     <h3 className="font-semibold text-gray-900 mb-3">Evidence & Witnesses</h3>
+                     <div className="space-y-4">
+                       <div>
+                         <p className="text-sm font-medium mb-2"><strong>Evidence:</strong></p>
+                         <ul className="list-disc list-inside ml-2 text-sm">
+                           {selectedCase.evidence?.map((item, index) => (
+                             <li key={index}>
+                               {item.startsWith('http') ? (
+                                 <a href={item} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                   View Evidence
+                                 </a>
+                               ) : (
+                                 item
+                               )}
+                             </li>
+                           )) || <li>No evidence provided</li>}
+                         </ul>
+                       </div>
+                       
+                       <div>
+                         <p className="text-sm font-medium mb-2"><strong>Witnesses:</strong></p>
+                         <ul className="list-disc list-inside ml-2 text-sm">
+                           {selectedCase.witnesses?.map((witness, index) => (
+                             <li key={index}>{witness}</li>
+                           )) || <li>No witnesses listed</li>}
+                         </ul>
+                       </div>
+                     </div>
+                   </div>
+
+                   {/* Evidence Image Analysis Section - Enhanced */}
+                   {selectedCase.evidence && selectedCase.evidence.length > 0 && (
+                     <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg">
+                       <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
+                         <AlertTriangle className="h-5 w-5 mr-2 text-orange-600" />
+                         Evidence Image Analysis
+                       </h3>
+                       
+                       <div className="space-y-4">
+                         {/* Image Upload and Preview */}
+                         <div className="flex items-start space-x-4">
+                           <div className="flex-1">
+                             <label className="block text-sm font-medium text-gray-700 mb-2">
+                               Upload or Select Evidence Image
+                             </label>
+                             <input
+                               type="file"
+                               accept="image/jpeg,image/png"
+                               className="w-full text-sm border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                               onChange={e => {
+                                 setSelectedFile(e.target.files[0]);
+                                 setAnalysisResult(null);
+                               }}
+                             />
+                           </div>
+                           <button
+                             onClick={handleAnalyzeImage}
+                             className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center disabled:opacity-50"
+                             disabled={analyzing}
+                           >
+                             {analyzing ? (
+                               <>
+                                 <Clock className="h-4 w-4 mr-2 animate-spin" />
+                                 Analyzing...
+                               </>
+                             ) : (
+                               <>
+                                 <Eye className="h-4 w-4 mr-2" />
+                                 Analyze Image
+                               </>
+                             )}
+                           </button>
+                         </div>
+                         
+                         {/* Image Preview */}
+                         <div className="flex items-center space-x-4 p-3 bg-white rounded-lg border">
+                           <img
+                             src={
+                               selectedFile
+                                 ? URL.createObjectURL(selectedFile)
+                                 : selectedCase.evidence[0]?.startsWith('http') 
+                                   ? selectedCase.evidence[0] 
+                                   : DEFAULT_IMAGE_PATH
+                             }
+                             alt="Evidence"
+                             className="w-24 h-24 object-cover rounded-lg border shadow-sm"
+                           />
+                           <div className="flex-1">
+                             <p className="text-sm font-medium text-gray-900">
+                               {selectedFile ? selectedFile.name : "Evidence Image"}
+                             </p>
+                             <p className="text-xs text-gray-500">
+                               Click "Analyze Image" to detect potential deepfakes
+                             </p>
+                           </div>
+                         </div>
+                         
+                         {/* Analysis Results */}
+                         {analysisResult && (
+                           <div className="bg-white p-4 rounded-lg border shadow-sm">
+                             <h4 className="font-medium text-gray-900 mb-3 flex items-center">
+                               <Shield className="h-4 w-4 mr-2 text-blue-600" />
+                               Analysis Results
+                             </h4>
+                             
+                             {analysisResult.error ? (
+                               <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg border border-red-200">
+                                 <AlertOctagon className="h-4 w-4 inline mr-2" />
+                                 {analysisResult.error}
+                               </div>
+                             ) : (
+                               <div className="space-y-4">
+                                 {/* Result Summary */}
+                                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                   <span className="text-sm font-medium text-gray-700">Analysis Result:</span>
+                                   <span className={`px-3 py-1 rounded-full text-sm font-bold ${
+                                     analysisResult.is_deepfake 
+                                       ? 'bg-red-100 text-red-800 border border-red-200' 
+                                       : 'bg-green-100 text-green-800 border border-green-200'
+                                   }`}>
+                                     {analysisResult.is_deepfake ? '🚨 Deepfake Detected' : '✅ Real Image'}
+                                   </span>
+                                 </div>
+                                 
+                                 {/* Confidence Score */}
+                                 <div className="space-y-2">
+                                   <div className="flex items-center justify-between">
+                                     <span className="text-sm font-medium text-gray-700">Confidence Score:</span>
+                                     <span className="text-sm font-bold text-gray-900">
+                                       {(analysisResult.confidence_score * 100).toFixed(1)}%
+                                     </span>
+                                   </div>
+                                   <div className="w-full bg-gray-200 rounded-full h-3">
+                                     <div
+                                       className={`h-3 rounded-full transition-all duration-300 ${
+                                         analysisResult.is_deepfake
+                                           ? "bg-red-500"
+                                           : "bg-green-500"
+                                       }`}
+                                       style={{
+                                         width: `${analysisResult.confidence_score * 100}%`,
+                                       }}
+                                     ></div>
+                                   </div>
+                                 </div>
+                                 
+                                 {/* Probability Breakdown */}
+                                 <div className="grid grid-cols-2 gap-4">
+                                   <div className="text-center p-3 bg-red-50 rounded-lg border border-red-200">
+                                     <p className="text-xs text-red-600 font-medium">FAKE PROBABILITY</p>
+                                     <p className="text-lg font-bold text-red-800">
+                                       {(analysisResult.probabilities.fake * 100).toFixed(1)}%
+                                     </p>
+                                   </div>
+                                   <div className="text-center p-3 bg-green-50 rounded-lg border border-green-200">
+                                     <p className="text-xs text-green-600 font-medium">REAL PROBABILITY</p>
+                                     <p className="text-lg font-bold text-green-800">
+                                       {(analysisResult.probabilities.real * 100).toFixed(1)}%
+                                     </p>
+                                   </div>
+                                 </div>
+                                 
+                                 {/* Recommendation */}
+                                 <div className={`p-3 rounded-lg border ${
+                                   analysisResult.is_deepfake 
+                                     ? 'bg-red-50 border-red-200' 
+                                     : 'bg-green-50 border-green-200'
+                                 }`}>
+                                   <p className="text-sm font-medium text-gray-900 mb-1">Recommendation:</p>
+                                   <p className={`text-sm ${
+                                     analysisResult.is_deepfake 
+                                       ? 'text-red-700' 
+                                       : 'text-green-700'
+                                   }`}>
+                                     {analysisResult.is_deepfake 
+                                       ? '⚠️ This image appears to be manipulated. Consider additional verification before using as evidence.'
+                                       : '✅ This image appears to be authentic and can be used as evidence.'
+                                     }
+                                   </p>
+                                 </div>
+                               </div>
+                             )}
+                           </div>
+                         )}
+                       </div>
+                     </div>
+                   )}
+
+                   {/* Evidence Image Analysis Section - Enhanced */}
+                   {selectedCase.evidence && selectedCase.evidence.length > 0 && (
+                     <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg">
+                       <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
+                         <AlertTriangle className="h-5 w-5 mr-2 text-orange-600" />
+                         Evidence Image Analysis
+                       </h3>
+                       
+                       <div className="space-y-4">
+                         {/* Image Upload and Preview */}
+                         <div className="flex items-start space-x-4">
+                           <div className="flex-1">
+                             <label className="block text-sm font-medium text-gray-700 mb-2">
+                               Upload or Select Evidence Image
+                             </label>
+                             <input
+                               type="file"
+                               accept="image/jpeg,image/png"
+                               className="w-full text-sm border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                               onChange={e => {
+                                 setSelectedFile(e.target.files[0]);
+                                 setAnalysisResult(null);
+                               }}
+                             />
+                           </div>
+                           <button
+                             onClick={handleAnalyzeImage}
+                             className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center disabled:opacity-50"
+                             disabled={analyzing}
+                           >
+                             {analyzing ? (
+                               <>
+                                 <Clock className="h-4 w-4 mr-2 animate-spin" />
+                                 Analyzing...
+                               </>
+                             ) : (
+                               <>
+                                 <Eye className="h-4 w-4 mr-2" />
+                                 Analyze Image
+                               </>
+                             )}
+                           </button>
+                         </div>
+                         
+                         {/* Image Preview */}
+                         <div className="flex items-center space-x-4 p-3 bg-white rounded-lg border">
+                           <img
+                             src={
+                               selectedFile
+                                 ? URL.createObjectURL(selectedFile)
+                                 : selectedCase.evidence[0]?.startsWith('http') 
+                                   ? selectedCase.evidence[0] 
+                                   : DEFAULT_IMAGE_PATH
+                             }
+                             alt="Evidence"
+                             className="w-24 h-24 object-cover rounded-lg border shadow-sm"
+                           />
+                           <div className="flex-1">
+                             <p className="text-sm font-medium text-gray-900">
+                               {selectedFile ? selectedFile.name : "Evidence Image"}
+                             </p>
+                             <p className="text-xs text-gray-500">
+                               Click "Analyze Image" to detect potential deepfakes
+                             </p>
+                           </div>
+                         </div>
+                         
+                         {/* Analysis Results */}
+                         {analysisResult && (
+                           <div className="bg-white p-4 rounded-lg border shadow-sm">
+                             <h4 className="font-medium text-gray-900 mb-3 flex items-center">
+                               <Shield className="h-4 w-4 mr-2 text-blue-600" />
+                               Analysis Results
+                             </h4>
+                             
+                             {analysisResult.error ? (
+                               <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg border border-red-200">
+                                 <AlertOctagon className="h-4 w-4 inline mr-2" />
+                                 {analysisResult.error}
+                               </div>
+                             ) : (
+                               <div className="space-y-4">
+                                 {/* Result Summary */}
+                                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                   <span className="text-sm font-medium text-gray-700">Analysis Result:</span>
+                                   <span className={`px-3 py-1 rounded-full text-sm font-bold ${
+                                     analysisResult.is_deepfake 
+                                       ? 'bg-red-100 text-red-800 border border-red-200' 
+                                       : 'bg-green-100 text-green-800 border border-green-200'
+                                   }`}>
+                                     {analysisResult.is_deepfake ? '🚨 Deepfake Detected' : '✅ Real Image'}
+                                   </span>
+                                 </div>
+                                 
+                                 {/* Confidence Score */}
+                                 <div className="space-y-2">
+                                   <div className="flex items-center justify-between">
+                                     <span className="text-sm font-medium text-gray-700">Confidence Score:</span>
+                                     <span className="text-sm font-bold text-gray-900">
+                                       {(analysisResult.confidence_score * 100).toFixed(1)}%
+                                     </span>
+                                   </div>
+                                   <div className="w-full bg-gray-200 rounded-full h-3">
+                                     <div
+                                       className={`h-3 rounded-full transition-all duration-300 ${
+                                         analysisResult.is_deepfake
+                                           ? "bg-red-500"
+                                           : "bg-green-500"
+                                       }`}
+                                       style={{
+                                         width: `${analysisResult.confidence_score * 100}%`,
+                                       }}
+                                     ></div>
+                                   </div>
+                                 </div>
+                                 
+                                 {/* Probability Breakdown */}
+                                 <div className="grid grid-cols-2 gap-4">
+                                   <div className="text-center p-3 bg-red-50 rounded-lg border border-red-200">
+                                     <p className="text-xs text-red-600 font-medium">FAKE PROBABILITY</p>
+                                     <p className="text-lg font-bold text-red-800">
+                                       {(analysisResult.probabilities.fake * 100).toFixed(1)}%
+                                     </p>
+                                   </div>
+                                   <div className="text-center p-3 bg-green-50 rounded-lg border border-green-200">
+                                     <p className="text-xs text-green-600 font-medium">REAL PROBABILITY</p>
+                                     <p className="text-lg font-bold text-green-800">
+                                       {(analysisResult.probabilities.real * 100).toFixed(1)}%
+                                     </p>
+                                   </div>
+                                 </div>
+                                 
+                                 {/* Recommendation */}
+                                 <div className={`p-3 rounded-lg border ${
+                                   analysisResult.is_deepfake 
+                                     ? 'bg-red-50 border-red-200' 
+                                     : 'bg-green-50 border-green-200'
+                                 }`}>
+                                   <p className="text-sm font-medium text-gray-900 mb-1">Recommendation:</p>
+                                   <p className={`text-sm ${
+                                     analysisResult.is_deepfake 
+                                       ? 'text-red-700' 
+                                       : 'text-green-700'
+                                   }`}>
+                                     {analysisResult.is_deepfake 
+                                       ? '⚠️ This image appears to be manipulated. Consider additional verification before using as evidence.'
+                                       : '✅ This image appears to be authentic and can be used as evidence.'
+                                     }
+                                   </p>
+                                 </div>
+                               </div>
+                             )}
+                           </div>
+                         )}
+                       </div>
+                     </div>
+                   )}
 
                   {selectedCase.nextSteps && selectedCase.nextSteps.length > 0 && (
                     <div className="bg-blue-50 p-4 rounded-lg">
@@ -1086,74 +1407,7 @@ const HrDashboard = () => {
           </div>
         )}
 
-        {/* Analyze Evidence Image */}
-        <div className="bg-gray-50 p-4 rounded-lg mt-4">
-          <h3 className="font-semibold text-gray-900 mb-3">Evidence Image Analysis</h3>
-          <input
-            type="file"
-            accept="image/jpeg,image/png"
-            className="mb-4"
-            onChange={e => {
-              setSelectedFile(e.target.files[0]);
-              setAnalysisResult(null);
-            }}
-          />
-          <img
-            src={
-              selectedFile
-                ? URL.createObjectURL(selectedFile)
-                : DEFAULT_IMAGE_PATH
-            }
-            alt="Evidence"
-            className="w-full max-w-xs rounded-lg mb-4 border"
-          />
-          <button
-            onClick={handleAnalyzeImage}
-            className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition"
-            disabled={analyzing}
-          >
-            {analyzing ? "Analyzing..." : "Analyze Image"}
-          </button>
-          {analysisResult && (
-            <div className="mt-4">
-              {analysisResult.error ? (
-                <div className="text-red-600">{analysisResult.error}</div>
-              ) : (
-                <>
-                  <div className="mb-2">
-                    <span className="font-semibold">
-                      Result:{" "}
-                      {analysisResult.is_deepfake ? (
-                        <span className="text-red-600">Deepfake Detected</span>
-                      ) : (
-                        <span className="text-green-600">Real Image</span>
-                      )}
-                    </span>
-                  </div>
-                  <div className="mb-2">
-                    <span className="font-semibold">Confidence: </span>
-                    {(analysisResult.confidence_score * 100).toFixed(2)}%
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-4">
-                    <div
-                      className={`h-4 rounded-full ${
-                        analysisResult.is_deepfake
-                          ? "bg-red-500"
-                          : "bg-green-500"
-                      }`}
-                      style={{
-                        width: `${analysisResult.confidence_score * 100}%`,
-                      }}
-                    ></div>
-                  </div>
-                  <div className="mt-2 text-xs text-gray-600">
-                    Fake: {(analysisResult.probabilities.fake * 100).toFixed(2)}% | Real: {(analysisResult.probabilities.real * 100).toFixed(2)}%
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-        </div>
+
       </div>
     </div>
   );
