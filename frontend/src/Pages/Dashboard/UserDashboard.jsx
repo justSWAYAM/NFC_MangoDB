@@ -1,4 +1,10 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { onAuthStateChanged } from "firebase/auth";
+import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { auth } from "../../../firebase.js";
+import NgoDashboard from "./NgoDashboard.jsx";
+import HrDashboard from "./HrDashboard.jsx";
 import {
   FileText,
   Search,
@@ -26,6 +32,8 @@ import TrackCasesModal from "../../Components/TrackCasesModal";
 
 const DeviDashboard = () => {
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const { role: urlRole } = useParams();
   const [activeCard, setActiveCard] = useState(null);
   const [user] = useState({ email: 'user@example.com', name: 'User' });
   const [complaintModalOpen, setComplaintModalOpen] = useState(false);
