@@ -360,15 +360,24 @@ const overlayVariants = {
 
   return (
     
-   <div className="min-h-screen bg-white relative overflow-hidden">
+   <div className="min-h-screen relative overflow-hidden">
+      {/* Background Image */}
+      <div className="absolute inset-0">
+        <img 
+          src="/vecteezy_women-of-different-cultures-and-nationalities-stand-side-by_51291019.jpg"
+          alt="Women of different cultures"
+          className="w-full h-full object-cover object-center"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-orange-900/20 via-transparent to-red-900/20" />
+      </div>
 
-  {/* 🌈 Floating GSAP Elements */}
-  <div className="absolute top-10 left-10 z-0 float-element">
-    <div className="h-12 w-12 bg-pink-400 opacity-30 blur-xl rounded-full"></div>
-  </div>
-  <div className="absolute bottom-16 right-16 z-0 float-element">
-    <div className="h-16 w-16 bg-purple-400 opacity-30 blur-2xl rounded-full"></div>
-  </div>
+      {/* 🌈 Floating GSAP Elements */}
+      <div className="absolute top-10 left-10 z-0 float-element">
+        <div className="h-12 w-12 bg-orange-400 opacity-30 blur-xl rounded-full"></div>
+      </div>
+      <div className="absolute bottom-16 right-16 z-0 float-element">
+        <div className="h-16 w-16 bg-red-400 opacity-30 blur-2xl rounded-full"></div>
+      </div>
 
   {/* Particle Background */}
   <div className="absolute inset-0">
@@ -402,97 +411,11 @@ const overlayVariants = {
       
 
         {/* Content */}
-        <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
-            <div className="w-full max-w-6xl mx-auto grid lg:grid-cols-2 gap-8 items-center">
-                {/* Left Side - Branding & Features */}
+        <div className="relative z-10 min-h-screen flex items-center justify-end p-4 pr-16">
+            <div className="w-full max-w-md">
+                {/* Auth Form */}
                 <motion.div
-                    className="text-center lg:text-left space-y-8"
-                    initial={{ opacity: 0, x: -50 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.6, delay: 0.2 }}
-                >
-                    <motion.div 
-                        className="space-y-4"
-                        variants={formVariants}
-                        initial="hidden"
-                        animate="visible"
-                    >
-                        <div className="flex items-center justify-center lg:justify-start space-x-2">
-                          <div className="p-2 bg-gradient-to-r from-red-500 to-pink-500 rounded-xl">
-                            <FileText className="h-8 w-8 text-white" />
-                          </div>
-                          <h1 className="text-3xl font-bold bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-transparent">
-                            README Generator Pro
-                          </h1>
-                        </div>
-                        <p className="text-xl text-gray-600 max-w-md mx-auto lg:mx-0">
-                          Create enterprise-grade documentation with advanced architecture diagrams and AI-powered analysis
-                        </p>
-                    </motion.div>
-
-                    {/* Features with staggered animation */}
-                    <motion.div 
-                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4 max-w-md mx-auto lg:mx-0"
-                        initial="hidden"
-                        animate="visible"
-                        variants={{
-                            visible: {
-                                transition: {
-                                    staggerChildren: 0.2
-                                }
-                            }
-                        }}
-                    >
-                      <motion.div 
-                          className="flex items-center space-x-3 p-3 bg-white/60 backdrop-blur-sm rounded-lg border border-red-100"
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.6 }}
-                      >
-                          <div className="p-2 bg-red-100 rounded-lg">
-                            <Code className="h-5 w-5 text-red-600" />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-gray-800">Complex Architecture Analysis</h3>
-                            <p className="text-sm text-gray-600">AI-powered system mapping</p>
-                          </div>
-                      </motion.div>
-                      
-                      <motion.div 
-                          className="flex items-center space-x-3 p-3 bg-white/60 backdrop-blur-sm rounded-lg border border-pink-100"
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.6 }}
-                      >
-                          <div className="p-2 bg-pink-100 rounded-lg">
-                            <Sparkles className="h-5 w-5 text-pink-600" />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-gray-800">Interactive Diagrams</h3>
-                            <p className="text-sm text-gray-600">Multi-dimensional visualizations</p>
-                          </div>
-                      </motion.div>
-                      
-                      <motion.div 
-                          className="flex items-center space-x-3 p-3 bg-white/60 backdrop-blur-sm rounded-lg border border-red-100"
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.6 }}
-                      >
-                          <div className="p-2 bg-red-100 rounded-lg">
-                            <Shield className="h-5 w-5 text-red-600" />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-gray-800">Enterprise Security</h3>
-                            <p className="text-sm text-gray-600">SOC 2 compliant platform</p>
-                          </div>
-                      </motion.div>
-                    </motion.div>
-                </motion.div>
-
-                {/* Right Side - Auth Form */}
-                <motion.div
-                    className="flex justify-center lg:justify-end"
+                    className="w-full"
                     initial={{ opacity: 0, x: 50 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.6, delay: 0.4 }}
@@ -511,14 +434,14 @@ const overlayVariants = {
                             {/* Form Header */}
                             <div className="text-center mb-8">
                               <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                                {isSignIn ? 'Welcome Back' : 'Create Account'}
+                                {isSignIn ? 'Welcome Back to DEVI' : 'Join DEVI'}
                               </h2>
                               <p className="text-gray-600">
                                 {isSignIn 
-                                  ? 'Sign in to access your documentation workspace'
-                                  : 'Join thousands of developers creating better docs'
+                                  ? 'Sign in to access your safe space'
+                                  : 'Join our community of strong, supportive women'
                                 }
-                              </p>
+                              </p>                                                                                            
                             </div>
 
                             {/* Error/Success Messages */}
@@ -626,7 +549,7 @@ const overlayVariants = {
                               <motion.button
                                 onClick={handleSubmit}
                                 disabled={loading}
-                                className="w-full bg-gradient-to-r from-red-500 to-pink-500 text-white py-3 px-4 rounded-lg font-semibold hover:from-red-600 hover:to-pink-600 flex items-center justify-center space-x-2"
+                                className="w-full bg-gradient-to-r from-orange-500 to-red-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-orange-600 hover:to-red-700 flex items-center justify-center space-x-2"
                                 variants={buttonVariants}
                                 whileHover="hover"
                                 whileTap="tap"
