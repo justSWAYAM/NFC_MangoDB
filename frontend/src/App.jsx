@@ -8,6 +8,7 @@ import UserDashboard from "./Pages/Dashboard/UserDashboard.jsx";
 import NgoDashboard from "./Pages/Dashboard/NgoDashboard.jsx";
 import HrDashboard from "./Pages/Dashboard/HrDashboard.jsx";
 import POSHExplainer from "./Pages/POSHExplainer.jsx";
+import Complaint from './Components/Complaint.jsx';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
         <Route path="/dashboard/NGO" element={<Navigate to="/NGO" />} />
         <Route path="/dashboard/HR" element={<Navigate to="/HR" />} />
         <Route path="/unauthorized" element={<div>Unauthorized Access</div>} />
+        <Route path="/complain" element={<Complaint/>} />
         {/* Redirect /signin to /auth */}
         <Route path="/signin" element={<Navigate to="/auth" />} />
       </Routes>
