@@ -32,22 +32,81 @@ import TrackCasesModal from "../../Components/TrackCasesModal";
 
 const DeviDashboard = () => {
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [userRole, setUserRole] = useState(null);
   const navigate = useNavigate();
   const { role: urlRole } = useParams();
   const [activeCard, setActiveCard] = useState(null);
-  const [user] = useState({ email: 'user@example.com', name: 'User' });
   const [complaintModalOpen, setComplaintModalOpen] = useState(false);
   const [complaints, setComplaints] = useState([]);
   const [showTrackCases, setShowTrackCases] = useState(false);
 
+  // Authentication and user data loading
   useEffect(() => {
-    const simulateAuth = () => {
-      setTimeout(() => {
-        setLoading(false);
-      }, 1500);
-    };
-    simulateAuth();
-  }, []);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          // Fetch user data from Firestore
+          const userDocRef = doc(db, "users", firebaseUser.uid);
+          const userDoc = await getDoc(userDocRef);
+          
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setUser({
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              name: userData.name || firebaseUser.displayName || 'User',
+              role: userData.role || 'User'
+            });
+            setUserRole(userData.role || 'User');
+          } else {
+            // If user document doesn't exist, create basic user object
+            setUser({
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              name: firebaseUser.displayName || 'User',
+              role: 'User'
+            });
+            setUserRole('User');
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+          // Fallback to basic user object
+          setUser({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            name: firebaseUser.displayName || 'User',
+            role: 'User'
+          });
+          setUserRole('User');
+        }
+      } else {
+        // No user is signed in, redirect to auth
+        navigate('/auth');
+        return;
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [navigate]);
+
+  // Role-based routing logic
+  useEffect(() => {
+    if (urlRole && urlRole.toLowerCase() === "ngo") {
+      return <NgoDashboard />;
+    }
+    if (urlRole && urlRole.toLowerCase() === "hr") {
+      return <HrDashboard />;
+    }
+    if (userRole === "User") {
+      // Continue with User Dashboard
+    } else if (userRole === "NGO") {
+      navigate('/NGO');
+    } else if (userRole === "HR") {
+      navigate('/HR');
+    }
+  }, [userRole, urlRole, navigate]);
 
   useEffect(() => {
     if (!user?.email) return;
@@ -158,6 +217,17 @@ const DeviDashboard = () => {
             <h2 className="text-xl font-semibold text-[#273F4F] mb-1">Devi Platform</h2>
             <p className="text-[#447D9B] text-sm">Securing your access...</p>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // If user is not authenticated, show loading
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-[#273F4F] mb-1">Loading...</h2>
         </div>
       </div>
     );

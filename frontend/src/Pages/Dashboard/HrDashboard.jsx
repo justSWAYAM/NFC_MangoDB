@@ -62,51 +62,111 @@ const HrDashboard = () => {
         return;
       }
 
-      const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        if (userData.role !== "HR") {
-          navigate("/unauthorized");
+      try {
+        // Fetch user data from Firestore
+        const userDocRef = doc(db, "users", currentUser.uid);
+        const userDoc = await getDoc(userDocRef);
+        
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          if (userData.role !== "HR") {
+            navigate("/unauthorized");
+            return;
+          }
+          setUser({
+            uid: currentUser.uid,
+            email: currentUser.email,
+            name: userData.name || currentUser.displayName || 'HR Staff',
+            role: userData.role
+          });
+          await loadCases();
+        } else {
+          // If user document doesn't exist, redirect to auth
+          navigate("/auth");
           return;
         }
-        setUser(userData);
-        await loadCases();
-      } else {
+      } catch (error) {
+        console.error("Error fetching user data:", error);
         navigate("/auth");
+        return;
       }
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [navigate]);
+  }, [navigate, db]);
 
   const loadCases = async () => {
     try {
-      // Load active cases
-      const activeQuery = query(
+      // Load all cases (both complaints and cases collections)
+      const casesQuery = query(
         collection(db, "cases"),
-        where("status", "in", ["New", "Under Investigation", "In Progress"]),
         orderBy("submittedDate", "desc")
       );
-      const activeSnapshot = await getDocs(activeQuery);
-      const activeData = activeSnapshot.docs.map(doc => ({
+      const casesSnapshot = await getDocs(casesQuery);
+      const casesData = casesSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
-      setActiveCases(activeData);
 
-      // Load resolved cases
-      const resolvedQuery = query(
-        collection(db, "cases"),
-        where("status", "==", "Resolved"),
-        orderBy("submittedDate", "desc")
+      // Load complaints from complaints collection
+      const complaintsQuery = query(
+        collection(db, "complaints"),
+        orderBy("createdAt", "desc")
       );
-      const resolvedSnapshot = await getDocs(resolvedQuery);
-      const resolvedData = resolvedSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setResolvedCases(resolvedData);
+      const complaintsSnapshot = await getDocs(complaintsQuery);
+      const complaintsData = complaintsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          // Transform complaint data to match case format using actual schema
+          victimName: data.userName || 'Anonymous',
+          victimAge: data.victimAge || 'N/A',
+          accusedName: data.accusedName || 'Not specified',
+          accusedPosition: data.accusedPosition || 'Not specified',
+          companyName: data.companyName || 'Not specified',
+          incidentType: data.incidentType || 'Sexual Harassment',
+          harassmentType: data.harassmentType || 'Not specified',
+          priority: data.priority || 'Medium',
+          status: data.status || 'New',
+          submittedDate: data.date || (data.createdAt ? new Date(data.createdAt.seconds * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
+          lastUpdate: data.date || (data.createdAt ? new Date(data.createdAt.seconds * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
+          description: data.description || 'No description provided',
+          location: data.location || 'Not specified',
+          witnesses: data.witnesses || [],
+          evidence: data.evidenceUrl ? [data.evidenceUrl] : [],
+          emotionalImpact: data.emotionalImpact || 'Not specified',
+          requestedSupport: data.requestedSupport || [],
+          investigationStatus: data.investigationStatus || 'Not Started',
+          investigator: data.investigator || 'Not assigned',
+          nextSteps: data.nextSteps || [],
+          responseHistory: data.responseHistory || [],
+          // Additional fields from actual schema
+          isAnonymous: data.isAnonymous || false,
+          ngo: data.ngo || '',
+          userEmail: data.userEmail || 'anonymous'
+        };
+      });
+
+      // Combine cases and complaints
+      const allCases = [...casesData, ...complaintsData];
+
+      // Separate active and resolved cases
+      const active = allCases.filter(case_ => 
+        case_.status === "New" || 
+        case_.status === "Under Investigation" || 
+        case_.status === "In Progress" ||
+        case_.status === "Pending" ||
+        case_.status === "pending"
+      );
+      const resolved = allCases.filter(case_ => 
+        case_.status === "Resolved" || 
+        case_.status === "Closed"
+      );
+
+      setActiveCases(active);
+      setResolvedCases(resolved);
     } catch (error) {
       console.error("Error loading cases:", error);
       // Fallback to sample data if Firebase fails
@@ -326,6 +386,9 @@ const HrDashboard = () => {
         return "bg-green-100 text-green-800 border-green-200";
       case "Escalated":
         return "bg-red-100 text-red-800 border-red-200";
+      case "Pending":
+      case "pending":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
     }
@@ -341,6 +404,8 @@ const HrDashboard = () => {
         return "bg-purple-100 text-purple-800 border-purple-200";
       case "Completed":
         return "bg-green-100 text-green-800 border-green-200";
+      case "Not Started":
+        return "bg-gray-100 text-gray-800 border-gray-200";
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
     }
@@ -358,7 +423,11 @@ const HrDashboard = () => {
   const submitInvestigation = async () => {
     if (caseToInvestigate && investigationNotes.trim()) {
       try {
-        const caseRef = doc(db, "cases", caseToInvestigate);
+        // Determine if it's a case or complaint based on the ID format
+        const isComplaint = caseToInvestigate.includes('complaint') || caseToInvestigate.length > 10;
+        const collectionName = isComplaint ? "complaints" : "cases";
+        
+        const caseRef = doc(db, collectionName, caseToInvestigate);
         const investigationRecord = {
           date: new Date().toISOString().split('T')[0],
           action: "Investigation Update",
@@ -369,7 +438,8 @@ const HrDashboard = () => {
         await updateDoc(caseRef, {
           responseHistory: [...(selectedCase?.responseHistory || []), investigationRecord],
           lastUpdate: new Date().toISOString().split('T')[0],
-          investigationStatus: "In Progress"
+          investigationStatus: "In Progress",
+          status: "Under Investigation"
         });
         
         console.log(`Investigation updated for case ${caseToInvestigate}`);
@@ -386,7 +456,11 @@ const HrDashboard = () => {
   const sendResponse = async () => {
     if (selectedCase && responseText.trim()) {
       try {
-        const caseRef = doc(db, "cases", selectedCase.id);
+        // Determine if it's a case or complaint based on the ID format
+        const isComplaint = selectedCase.id.includes('complaint') || selectedCase.id.length > 10;
+        const collectionName = isComplaint ? "complaints" : "cases";
+        
+        const caseRef = doc(db, collectionName, selectedCase.id);
         const newResponse = {
           date: new Date().toISOString().split('T')[0],
           action: "HR Response",
@@ -624,18 +698,26 @@ const HrDashboard = () => {
                           <div className="grid grid-cols-2 gap-4 mb-3">
                             <div>
                               <p className="text-sm text-gray-600">
-                                <strong>Victim:</strong> {case_.victimName} ({case_.victimAge} years)
+                                <strong>Victim:</strong> {case_.victimName} {case_.isAnonymous && "(Anonymous)"} ({case_.victimAge} years)
                               </p>
                               <p className="text-sm text-gray-600">
                                 <strong>Accused:</strong> {case_.accusedName} - {case_.accusedPosition}
                               </p>
+                              {case_.ngo && (
+                                <p className="text-sm text-gray-600">
+                                  <strong>NGO:</strong> {case_.ngo}
+                                </p>
+                              )}
                             </div>
                             <div>
                               <p className="text-sm text-gray-600">
                                 <strong>Investigator:</strong> {case_.investigator}
                               </p>
                               <p className="text-sm text-gray-600">
-                                <strong>Witnesses:</strong> {case_.witnesses.length}
+                                <strong>Witnesses:</strong> {case_.witnesses?.length || 0}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                <strong>User Email:</strong> {case_.userEmail}
                               </p>
                             </div>
                           </div>
@@ -668,7 +750,7 @@ const HrDashboard = () => {
                             </div>
                           )}
 
-                          {case_.responseHistory.length > 0 && (
+                          {case_.responseHistory && case_.responseHistory.length > 0 && (
                             <div className="bg-gray-50 p-3 rounded-lg mb-3">
                               <p className="text-xs text-gray-800">
                                 <strong>Last Update:</strong> {case_.responseHistory[case_.responseHistory.length - 1].response}
@@ -833,10 +915,14 @@ const HrDashboard = () => {
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <h3 className="font-semibold text-gray-900 mb-3">Case Information</h3>
                     <div className="space-y-2 text-sm">
-                      <p><strong>Victim:</strong> {selectedCase.victimName} ({selectedCase.victimAge} years)</p>
+                      <p><strong>Victim:</strong> {selectedCase.victimName} {selectedCase.isAnonymous && "(Anonymous)"} ({selectedCase.victimAge} years)</p>
                       <p><strong>Accused:</strong> {selectedCase.accusedName} - {selectedCase.accusedPosition}</p>
                       <p><strong>Company:</strong> {selectedCase.companyName}</p>
                       <p><strong>Investigator:</strong> {selectedCase.investigator}</p>
+                      {selectedCase.ngo && (
+                        <p><strong>NGO:</strong> {selectedCase.ngo}</p>
+                      )}
+                      <p><strong>User Email:</strong> {selectedCase.userEmail}</p>
                       <p><strong>Investigation Status:</strong> 
                         <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium border ${getInvestigationStatusColor(selectedCase.investigationStatus)}`}>
                           {selectedCase.investigationStatus}
@@ -850,20 +936,28 @@ const HrDashboard = () => {
                     <div className="space-y-2 text-sm">
                       <p><strong>Evidence:</strong></p>
                       <ul className="list-disc list-inside ml-2">
-                        {selectedCase.evidence.map((item, index) => (
-                          <li key={index}>{item}</li>
-                        ))}
+                        {selectedCase.evidence?.map((item, index) => (
+                          <li key={index}>
+                            {item.startsWith('http') ? (
+                              <a href={item} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                View Evidence
+                              </a>
+                            ) : (
+                              item
+                            )}
+                          </li>
+                        )) || <li>No evidence provided</li>}
                       </ul>
                       <p className="mt-2"><strong>Witnesses:</strong></p>
                       <ul className="list-disc list-inside ml-2">
-                        {selectedCase.witnesses.map((witness, index) => (
+                        {selectedCase.witnesses?.map((witness, index) => (
                           <li key={index}>{witness}</li>
-                        ))}
+                        )) || <li>No witnesses listed</li>}
                       </ul>
                     </div>
                   </div>
 
-                  {selectedCase.nextSteps && (
+                  {selectedCase.nextSteps && selectedCase.nextSteps.length > 0 && (
                     <div className="bg-blue-50 p-4 rounded-lg">
                       <h3 className="font-semibold text-gray-900 mb-3">Next Steps</h3>
                       <ul className="space-y-1 text-sm">
@@ -884,7 +978,7 @@ const HrDashboard = () => {
                     <p className="text-sm text-gray-700">{selectedCase.description}</p>
                   </div>
 
-                  {selectedCase.responseHistory.length > 0 && (
+                  {selectedCase.responseHistory && selectedCase.responseHistory.length > 0 && (
                     <div className="bg-blue-50 p-4 rounded-lg">
                       <h3 className="font-semibold text-gray-900 mb-3">Investigation History</h3>
                       <div className="space-y-2">
