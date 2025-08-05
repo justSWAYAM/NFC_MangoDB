@@ -39,7 +39,10 @@ import {
   MapPin,
   Clock as ClockIcon,
   LogOut,
+  AlertOctagon,
 } from "lucide-react";
+
+const DEFAULT_IMAGE_PATH = "/default-evidence.jpg"; // Place a jpg in your public folder with this name
 
 const NgoDashboard = () => {
   const [activeTab, setActiveTab] = useState("active");
@@ -53,6 +56,9 @@ const NgoDashboard = () => {
   const [activeCases, setActiveCases] = useState([]);
   const [resolvedCases, setResolvedCases] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
   const navigate = useNavigate();
   const db = getFirestore();
 
@@ -84,31 +90,117 @@ const NgoDashboard = () => {
 
   const loadCases = async () => {
     try {
-      // Load active cases
-      const activeQuery = query(
+      // Load cases from both "cases" and "complaints" collections
+      
+      // Load from cases collection
+      const casesQuery = query(
         collection(db, "cases"),
-        where("status", "in", ["New", "In Progress"]),
         orderBy("submittedDate", "desc")
       );
-      const activeSnapshot = await getDocs(activeQuery);
-      const activeData = activeSnapshot.docs.map((doc) => ({
+      const casesSnapshot = await getDocs(casesQuery);
+      const casesData = casesSnapshot.docs.map(doc => ({
         id: doc.id,
-        ...doc.data(),
+        ...doc.data()
       }));
-      setActiveCases(activeData);
 
-      // Load resolved cases
-      const resolvedQuery = query(
-        collection(db, "cases"),
-        where("status", "==", "Resolved"),
-        orderBy("submittedDate", "desc")
+      // Load from complaints collection
+      const complaintsQuery = query(
+        collection(db, "complaints"),
+        orderBy("createdAt", "desc")
       );
-      const resolvedSnapshot = await getDocs(resolvedQuery);
-      const resolvedData = resolvedSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setResolvedCases(resolvedData);
+      const complaintsSnapshot = await getDocs(complaintsQuery);
+      const complaintsData = complaintsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          // Transform complaint data to match case format
+          victimName: data.userName || 'Anonymous',
+          victimAge: data.victimAge || 'N/A',
+          accusedName: data.accusedName || 'Not specified',
+          accusedPosition: data.accusedPosition || 'Not specified',
+          companyName: data.companyName || 'Not specified',
+          incidentType: data.incidentType || 'Sexual Harassment',
+          harassmentType: data.harassmentType || 'Not specified',
+          priority: data.priority || 'Medium',
+          status: data.status || 'New',
+          submittedDate: data.date || (data.createdAt ? new Date(data.createdAt.seconds * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
+          lastUpdate: data.date || (data.createdAt ? new Date(data.createdAt.seconds * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
+          description: data.description || 'No description provided',
+          location: data.location || 'Not specified',
+          witnesses: data.witnesses || [],
+          evidence: data.evidenceUrl ? [data.evidenceUrl] : [],
+          emotionalImpact: data.emotionalImpact || 'Not specified',
+          requestedSupport: data.requestedSupport || [],
+          responseHistory: data.responseHistory || [],
+          // Additional fields from actual schema
+          isAnonymous: data.isAnonymous || false,
+          ngo: data.ngo || '',
+          userEmail: data.userEmail || 'anonymous'
+        };
+      });
+
+      // Combine cases and complaints
+      const allCases = [...casesData, ...complaintsData];
+
+             // Filter for NGO: Show cases that are NOT workplace-related or are public/community incidents
+       const ngoRelevantCases = allCases.filter(case_ => {
+         const location = case_.location?.toLowerCase() || '';
+         const incidentType = case_.incidentType?.toLowerCase() || '';
+         
+         // Exclude cases that are clearly workplace-related
+         const isWorkplaceRelated = location.includes('office') || 
+                                   location.includes('workplace') || 
+                                   location.includes('company') ||
+                                   location.includes('work') ||
+                                   location.includes('corporate') ||
+                                   location.includes('business') ||
+                                   location.includes('firm') ||
+                                   location.includes('enterprise');
+         
+         // Include cases that are:
+         // 1. NOT workplace-related (public places, community, etc.)
+         // 2. Workplace discrimination (NGOs often handle these)
+         // 3. Cases with "pending" status (new complaints)
+         // 4. Cases with public/community locations
+         
+         const isDiscrimination = incidentType.includes('discrimination');
+         const isPending = case_.status === 'pending' || case_.status === 'Pending';
+         const isPublicPlace = location.includes('public') || 
+                              location.includes('community') || 
+                              location.includes('street') ||
+                              location.includes('transport') ||
+                              location.includes('online') ||
+                              location.includes('digital') ||
+                              location.includes('social media') ||
+                              location.includes('educational') ||
+                              location.includes('university') ||
+                              location.includes('college') ||
+                              location.includes('school');
+         
+         // First, exclude all workplace-related cases
+         if (isWorkplaceRelated) {
+           return false;
+         }
+         
+         // Then include non-workplace cases, discrimination cases, pending cases, or public place cases
+         return true || isDiscrimination || isPending || isPublicPlace;
+       });
+
+      // Separate active and resolved cases
+      const active = ngoRelevantCases.filter(case_ => 
+        case_.status === "New" || 
+        case_.status === "In Progress" || 
+        case_.status === "pending" ||
+        case_.status === "Pending"
+      );
+      const resolved = ngoRelevantCases.filter(case_ => 
+        case_.status === "Resolved" || 
+        case_.status === "Closed"
+      );
+
+      setActiveCases(active);
+      setResolvedCases(resolved);
     } catch (error) {
       console.error("Error loading cases:", error);
       // Fallback to sample data if Firebase fails
@@ -126,29 +218,56 @@ const NgoDashboard = () => {
     }
   };
 
+  // Analyze image handler
+  const handleAnalyzeImage = async () => {
+    setAnalyzing(true);
+    setAnalysisResult(null);
+    try {
+      let fileToSend;
+      if (selectedFile) {
+        fileToSend = selectedFile;
+      } else {
+        const response = await fetch(DEFAULT_IMAGE_PATH);
+        fileToSend = await response.blob();
+      }
+      const formData = new FormData();
+      formData.append("file", fileToSend, selectedFile ? selectedFile.name : "evidence.jpg");
+
+      const apiResponse = await fetch("http://localhost:8000/detect-deepfake", {
+        method: "POST",
+        body: formData,
+      });
+      const result = await apiResponse.json();
+      setAnalysisResult(result);
+    } catch (error) {
+      setAnalysisResult({ error: "Failed to analyze image." });
+    }
+    setAnalyzing(false);
+  };
+
   // Sample data for fallback
   const sampleActiveCases = [
     {
       id: "SH-001",
       victimName: "Sarah M.",
       victimAge: "28",
-      companyName: "Tech Solutions Inc.",
-      incidentType: "Sexual Harassment",
-      harassmentType: "Verbal Harassment",
+      companyName: "Community Center",
+      incidentType: "Workplace Discrimination",
+      harassmentType: "Gender Discrimination",
       priority: "High",
-      status: "New",
+      status: "pending",
       submittedDate: "2024-01-15",
       description:
-        "Experiencing repeated inappropriate sexual comments from supervisor during team meetings. Comments include sexual innuendos and unwanted advances.",
+        "Experiencing discrimination based on gender while volunteering at community center. Denied opportunities and treated differently from male volunteers.",
       lastUpdate: "2024-01-15",
-      location: "Office - Conference Room",
+      location: "Public Place",
       witnesses: ["Jane Doe", "John Smith"],
-      evidence: ["Email screenshots", "Audio recording"],
+      evidence: ["Email screenshots", "Audio recording", "https://example.com/evidence1.jpg"],
       emotionalImpact: "High stress, anxiety, difficulty sleeping",
       requestedSupport: [
         "Legal advice",
         "Counseling",
-        "Transfer to different team",
+        "Support group",
       ],
       responseHistory: [],
     },
@@ -156,23 +275,23 @@ const NgoDashboard = () => {
       id: "SH-002",
       victimName: "Jessica R.",
       victimAge: "32",
-      companyName: "Marketing Group LLC",
+      companyName: "Public Transport",
       incidentType: "Sexual Harassment",
       harassmentType: "Physical Harassment",
       priority: "High",
       status: "In Progress",
       submittedDate: "2024-01-12",
       description:
-        "Colleague making unwanted physical contact including touching, hugging without consent, and standing too close despite clear objections.",
+        "Experienced unwanted physical contact while using public transport. Stranger making inappropriate advances and touching without consent.",
       lastUpdate: "2024-01-16",
-      location: "Office - Break Room",
+      location: "Public Transport",
       witnesses: ["Mike Johnson"],
-      evidence: ["Security camera footage", "Witness statements"],
-      emotionalImpact: "Fear, anxiety, avoiding work areas",
+      evidence: ["Security camera footage", "Witness statements", "https://example.com/evidence2.jpg"],
+      emotionalImpact: "Fear, anxiety, avoiding public transport",
       requestedSupport: [
         "Immediate intervention",
         "Legal protection",
-        "Workplace safety measures",
+        "Safety measures",
       ],
       responseHistory: [
         {
@@ -187,30 +306,30 @@ const NgoDashboard = () => {
       id: "SH-003",
       victimName: "Amanda K.",
       victimAge: "25",
-      companyName: "Finance Corp",
+      companyName: "Community Event",
       incidentType: "Sexual Harassment",
-      harassmentType: "Hostile Work Environment",
+      harassmentType: "Verbal Harassment",
       priority: "Medium",
       status: "In Progress",
       submittedDate: "2024-01-10",
       description:
-        "Creating hostile environment through sexual comments, inappropriate jokes, and discriminatory behavior based on gender.",
+        "Experienced verbal harassment at a community event. Multiple people making inappropriate comments and creating uncomfortable environment.",
       lastUpdate: "2024-01-14",
-      location: "Office - Open workspace",
-      witnesses: ["Multiple team members"],
-      evidence: ["Documented incidents", "HR complaints"],
+      location: "Community Event",
+      witnesses: ["Multiple attendees"],
+      evidence: ["Documented incidents", "Witness statements", "https://example.com/evidence3.jpg"],
       emotionalImpact:
-        "Depression, loss of confidence, considering resignation",
+        "Depression, loss of confidence, avoiding community events",
       requestedSupport: [
-        "Workplace investigation",
+        "Community awareness",
         "Policy changes",
-        "Training for team",
+        "Support group",
       ],
       responseHistory: [
         {
           date: "2024-01-12",
           action: "Case investigation started",
-          response: "Initiated formal investigation process with HR department",
+          response: "Initiated community awareness and support process",
         },
       ],
     },
@@ -221,21 +340,21 @@ const NgoDashboard = () => {
       id: "SH-004",
       victimName: "Maria L.",
       victimAge: "29",
-      companyName: "Consulting Firm",
+      companyName: "Online Platform",
       incidentType: "Sexual Harassment",
       harassmentType: "Digital Harassment",
       priority: "Medium",
       status: "Resolved",
       submittedDate: "2024-01-05",
       description:
-        "Receiving inappropriate sexual messages and emails from manager outside work hours, including explicit content.",
+        "Receiving inappropriate sexual messages and emails from online acquaintance, including explicit content and threats.",
       lastUpdate: "2024-01-13",
       location: "Digital/Online",
       witnesses: ["Email evidence"],
-      evidence: ["Screenshots", "Email records"],
+      evidence: ["Screenshots", "Email records", "https://example.com/evidence4.jpg"],
       emotionalImpact: "Stress, violation of privacy",
-      requestedSupport: ["Digital harassment policy", "Manager transfer"],
-      resolution: "Manager was terminated, new policies implemented",
+      requestedSupport: ["Digital safety training", "Legal protection"],
+      resolution: "Perpetrator blocked, legal action taken, victim received support",
       responseHistory: [
         {
           date: "2024-01-07",
@@ -245,13 +364,13 @@ const NgoDashboard = () => {
         {
           date: "2024-01-10",
           action: "Legal action taken",
-          response: "Filed formal complaint with company and legal authorities",
+          response: "Filed formal complaint with platform and legal authorities",
         },
         {
           date: "2024-01-13",
           action: "Case resolved",
           response:
-            "Manager terminated, victim received compensation and support",
+            "Perpetrator blocked, victim received compensation and support",
         },
       ],
     },
@@ -259,21 +378,21 @@ const NgoDashboard = () => {
       id: "SH-005",
       victimName: "Rachel T.",
       victimAge: "31",
-      companyName: "Design Studio",
-      incidentType: "Sexual Harassment",
-      harassmentType: "Quid Pro Quo",
+      companyName: "Educational Institution",
+      incidentType: "Workplace Discrimination",
+      harassmentType: "Gender Discrimination",
       priority: "Low",
       status: "Resolved",
       submittedDate: "2024-01-02",
       description:
-        "Experiencing quid pro quo harassment where supervisor implied career advancement in exchange for sexual favors.",
+        "Experiencing discrimination based on gender while applying for educational opportunities. Denied access based on gender stereotypes.",
       lastUpdate: "2024-01-11",
-      location: "Office - Private meeting room",
+      location: "Educational Institution",
       witnesses: ["None - private meeting"],
-      evidence: ["Documented conversations", "Performance records"],
+      evidence: ["Documented conversations", "Application records", "https://example.com/evidence5.jpg"],
       emotionalImpact: "Career anxiety, moral distress",
-      requestedSupport: ["Legal protection", "Career guidance"],
-      resolution: "Supervisor disciplined, victim promoted to new role",
+      requestedSupport: ["Legal protection", "Educational guidance"],
+      resolution: "Institution policy changed, victim received equal opportunities",
       responseHistory: [
         {
           date: "2024-01-04",
@@ -283,12 +402,12 @@ const NgoDashboard = () => {
         {
           date: "2024-01-08",
           action: "Investigation completed",
-          response: "Company found evidence of harassment",
+          response: "Institution found evidence of discrimination",
         },
         {
           date: "2024-01-11",
           action: "Resolution achieved",
-          response: "Victim received promotion, supervisor disciplined",
+          response: "Victim received equal opportunities, institution policy changed",
         },
       ],
     },
@@ -902,25 +1021,192 @@ const NgoDashboard = () => {
                     <h3 className="font-semibold text-gray-900 mb-3">
                       Evidence & Witnesses
                     </h3>
-                    <div className="space-y-2 text-sm">
-                      <p>
-                        <strong>Evidence:</strong>
-                      </p>
-                      <ul className="list-disc list-inside ml-2">
-                        {selectedCase.evidence.map((item, index) => (
-                          <li key={index}>{item}</li>
-                        ))}
-                      </ul>
-                      <p className="mt-2">
-                        <strong>Witnesses:</strong>
-                      </p>
-                      <ul className="list-disc list-inside ml-2">
-                        {selectedCase.witnesses.map((witness, index) => (
-                          <li key={index}>{witness}</li>
-                        ))}
-                      </ul>
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-sm font-medium mb-2"><strong>Evidence:</strong></p>
+                        <ul className="list-disc list-inside ml-2 text-sm">
+                          {selectedCase.evidence?.map((item, index) => (
+                            <li key={index}>
+                              {item.startsWith('http') ? (
+                                <a href={item} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                  View Evidence
+                                </a>
+                              ) : (
+                                item
+                              )}
+                            </li>
+                          )) || <li>No evidence provided</li>}
+                        </ul>
+                      </div>
+                      
+                      <div>
+                        <p className="text-sm font-medium mb-2"><strong>Witnesses:</strong></p>
+                        <ul className="list-disc list-inside ml-2 text-sm">
+                          {selectedCase.witnesses?.map((witness, index) => (
+                            <li key={index}>{witness}</li>
+                          )) || <li>No witnesses listed</li>}
+                        </ul>
+                      </div>
                     </div>
                   </div>
+
+                  {/* Evidence Image Analysis Section - Enhanced */}
+                  {selectedCase.evidence && selectedCase.evidence.length > 0 && (
+                    <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg">
+                      <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
+                        <AlertTriangle className="h-5 w-5 mr-2 text-orange-600" />
+                        Evidence Image Analysis
+                      </h3>
+                      
+                      <div className="space-y-4">
+                        {/* Image Upload and Preview */}
+                        <div className="flex items-start space-x-4">
+                          <div className="flex-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Upload or Select Evidence Image
+                            </label>
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png"
+                              className="w-full text-sm border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                              onChange={e => {
+                                setSelectedFile(e.target.files[0]);
+                                setAnalysisResult(null);
+                              }}
+                            />
+                          </div>
+                          <button
+                            onClick={handleAnalyzeImage}
+                            className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center disabled:opacity-50"
+                            disabled={analyzing}
+                          >
+                            {analyzing ? (
+                              <>
+                                <Clock className="h-4 w-4 mr-2 animate-spin" />
+                                Analyzing...
+                              </>
+                            ) : (
+                              <>
+                                <Eye className="h-4 w-4 mr-2" />
+                                Analyze Image
+                              </>
+                            )}
+                          </button>
+                        </div>
+                        
+                        {/* Image Preview */}
+                        <div className="flex items-center space-x-4 p-3 bg-white rounded-lg border">
+                          <img
+                            src={
+                              selectedFile
+                                ? URL.createObjectURL(selectedFile)
+                                : selectedCase.evidence[0]?.startsWith('http') 
+                                  ? selectedCase.evidence[0] 
+                                  : DEFAULT_IMAGE_PATH
+                            }
+                            alt="Evidence"
+                            className="w-24 h-24 object-cover rounded-lg border shadow-sm"
+                          />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-900">
+                              {selectedFile ? selectedFile.name : "Evidence Image"}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              Click "Analyze Image" to detect potential deepfakes
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {/* Analysis Results */}
+                        {analysisResult && (
+                          <div className="bg-white p-4 rounded-lg border shadow-sm">
+                            <h4 className="font-medium text-gray-900 mb-3 flex items-center">
+                              <Shield className="h-4 w-4 mr-2 text-blue-600" />
+                              Analysis Results
+                            </h4>
+                            
+                            {analysisResult.error ? (
+                              <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg border border-red-200">
+                                <AlertOctagon className="h-4 w-4 inline mr-2" />
+                                {analysisResult.error}
+                              </div>
+                            ) : (
+                              <div className="space-y-4">
+                                {/* Result Summary */}
+                                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                  <span className="text-sm font-medium text-gray-700">Analysis Result:</span>
+                                  <span className={`px-3 py-1 rounded-full text-sm font-bold ${
+                                    analysisResult.is_deepfake 
+                                      ? 'bg-red-100 text-red-800 border border-red-200' 
+                                      : 'bg-green-100 text-green-800 border border-green-200'
+                                  }`}>
+                                    {analysisResult.is_deepfake ? '🚨 Deepfake Detected' : '✅ Real Image'}
+                                  </span>
+                                </div>
+                                
+                                {/* Confidence Score */}
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm font-medium text-gray-700">Confidence Score:</span>
+                                    <span className="text-sm font-bold text-gray-900">
+                                      {(analysisResult.confidence_score * 100).toFixed(1)}%
+                                    </span>
+                                  </div>
+                                  <div className="w-full bg-gray-200 rounded-full h-3">
+                                    <div
+                                      className={`h-3 rounded-full transition-all duration-300 ${
+                                        analysisResult.is_deepfake
+                                          ? "bg-red-500"
+                                          : "bg-green-500"
+                                      }`}
+                                      style={{
+                                        width: `${analysisResult.confidence_score * 100}%`,
+                                      }}
+                                    ></div>
+                                  </div>
+                                </div>
+                                
+                                {/* Probability Breakdown */}
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div className="text-center p-3 bg-red-50 rounded-lg border border-red-200">
+                                    <p className="text-xs text-red-600 font-medium">FAKE PROBABILITY</p>
+                                    <p className="text-lg font-bold text-red-800">
+                                      {(analysisResult.probabilities.fake * 100).toFixed(1)}%
+                                    </p>
+                                  </div>
+                                  <div className="text-center p-3 bg-green-50 rounded-lg border border-green-200">
+                                    <p className="text-xs text-green-600 font-medium">REAL PROBABILITY</p>
+                                    <p className="text-lg font-bold text-green-800">
+                                      {(analysisResult.probabilities.real * 100).toFixed(1)}%
+                                    </p>
+                                  </div>
+                                </div>
+                                
+                                {/* Recommendation */}
+                                <div className={`p-3 rounded-lg border ${
+                                  analysisResult.is_deepfake 
+                                    ? 'bg-red-50 border-red-200' 
+                                    : 'bg-green-50 border-green-200'
+                                }`}>
+                                  <p className="text-sm font-medium text-gray-900 mb-1">Recommendation:</p>
+                                  <p className={`text-sm ${
+                                    analysisResult.is_deepfake 
+                                      ? 'text-red-700' 
+                                      : 'text-green-700'
+                                  }`}>
+                                    {analysisResult.is_deepfake 
+                                      ? '⚠️ This image appears to be manipulated. Consider additional verification before using as evidence.'
+                                      : '✅ This image appears to be authentic and can be used as evidence.'
+                                    }
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <h3 className="font-semibold text-gray-900 mb-3">

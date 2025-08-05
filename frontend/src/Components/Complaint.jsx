@@ -1,38 +1,45 @@
-import React, { useState, useEffect } from 'react';
-import { db } from '../../firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { db } from "../../firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 const questions = [
   {
     question: "What type of incident are you reporting?",
-    options: ["Sexual Harassment", "Workplace Discrimination", "Violence", "Other"],
-    key: "incidentType"
+    options: [
+      "Sexual Harassment",
+      "Workplace Discrimination",
+      "Violence",
+      "Others",
+    ],
+    key: "incidentType",
   },
   {
     question: "Where did the incident take place?",
     options: ["Office", "Public Place", "Home", "Other"],
-    key: "location"
+    key: "location",
   },
   {
     question: "Please describe what happened:",
     textarea: true,
-    key: "description"
+    key: "description",
   },
   {
     question: "When did the incident occur?",
     inputType: "date",
-    key: "date"
-  }
+    key: "date",
+  },
 ];
 
 const ComplaintModal = ({ open, onClose, user }) => {
+  const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [responses, setResponses] = useState({});
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [addEvidence, setAddEvidence] = useState(false);
   const [evidenceFile, setEvidenceFile] = useState(null);
   const [addNgo, setAddNgo] = useState(false);
-  const [ngoName, setNgoName] = useState('');
+  const [ngoName, setNgoName] = useState("");
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
@@ -52,32 +59,42 @@ const ComplaintModal = ({ open, onClose, user }) => {
   const uploadEvidence = async (file) => {
     // In production, upload to Firebase Storage and return the URL
     return new Promise((resolve) => {
-      setTimeout(() => resolve("https://dummyimage.com/600x400/000/fff&text=Uploaded+Evidence"), 1000);
+      setTimeout(
+        () =>
+          resolve(
+            "https://dummyimage.com/600x400/000/fff&text=Uploaded+Evidence"
+          ),
+        1000
+      );
     });
   };
 
   const handleSubmit = async () => {
     setUploading(true);
-    let evidenceUrl = '';
+    let evidenceUrl = "";
     if (addEvidence && evidenceFile) {
       evidenceUrl = await uploadEvidence(evidenceFile);
     }
     try {
-      await addDoc(collection(db, 'complaints'), {
+      await addDoc(collection(db, "complaints"), {
         ...responses,
-        userEmail: isAnonymous ? 'anonymous' : (user?.email || ''),
-        userName: isAnonymous ? 'Anonymous' : (user?.name || ''),
-        status: 'pending',
+        userEmail: isAnonymous ? "anonymous" : user?.email || "",
+        userName: isAnonymous ? "Anonymous" : user?.name || "",
+        status: "pending",
         createdAt: serverTimestamp(),
         evidenceUrl,
-        ngo: addNgo ? ngoName : '',
+        ngo: addNgo ? ngoName : "",
         isAnonymous,
       });
-      alert('Your complaint has been submitted successfully.');
+      alert("Your complaint has been submitted successfully.");
       if (onClose) onClose();
+
+      // Redirect to community page with incident type
+      const incidentType = responses.incidentType || "Sexual Harassment";
+      navigate(`/community?incidentType=${encodeURIComponent(incidentType)}`);
     } catch (error) {
-      alert('Failed to submit complaint. Please try again.');
-      console.error('Error submitting complaint:', error);
+      alert("Failed to submit complaint. Please try again.");
+      console.error("Error submitting complaint:", error);
     }
     setUploading(false);
   };
@@ -121,7 +138,9 @@ const ComplaintModal = ({ open, onClose, user }) => {
                 <textarea
                   className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
                   placeholder="Type your response here..."
-                  onChange={(e) => handleInput(questions[step].key, e.target.value)}
+                  onChange={(e) =>
+                    handleInput(questions[step].key, e.target.value)
+                  }
                 ></textarea>
                 <button
                   onClick={() => setStep((prev) => prev + 1)}
@@ -136,7 +155,9 @@ const ComplaintModal = ({ open, onClose, user }) => {
                 <input
                   type="date"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
-                  onChange={(e) => handleInput(questions[step].key, e.target.value)}
+                  onChange={(e) =>
+                    handleInput(questions[step].key, e.target.value)
+                  }
                 />
                 <button
                   onClick={() => setStep((prev) => prev + 1)}
@@ -187,7 +208,7 @@ const ComplaintModal = ({ open, onClose, user }) => {
                   type="file"
                   accept="image/jpeg"
                   className="block"
-                  onChange={e => setEvidenceFile(e.target.files[0])}
+                  onChange={(e) => setEvidenceFile(e.target.files[0])}
                 />
               )}
               <label className="flex items-center gap-2">
@@ -205,7 +226,7 @@ const ComplaintModal = ({ open, onClose, user }) => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   placeholder="Enter NGO name"
                   value={ngoName}
-                  onChange={e => setNgoName(e.target.value)}
+                  onChange={(e) => setNgoName(e.target.value)}
                 />
               )}
             </div>

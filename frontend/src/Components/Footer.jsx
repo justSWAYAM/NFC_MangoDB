@@ -9,7 +9,7 @@ const Footer = () => {
           {/* EiraSafe branding / left section */}
           <div className="mb-4 md:mb-0">
             <p className="text-gray-600 text-sm dark:text-gray-400">
-              EiraSafe - Your safe space for healing and support
+              Devi - Your safe space for healing and support
             </p>
           </div>
 
@@ -23,7 +23,7 @@ const Footer = () => {
                   href="mailto:eirasafe@gmail.com"
                   className="text-purple-700 hover:text-purple-900 font-medium dark:text-purple-300 dark:hover:text-purple-100"
                 >
-                  eirasafe@gmail.com
+                  devi@gmail.com
                 </a>
               </p>
               <div className="flex items-center">
@@ -41,7 +41,7 @@ const Footer = () => {
                   href="tel:112"
                   className="text-purple-700 hover:text-purple-900 text-sm font-medium dark:text-purple-300 dark:hover:text-purple-100"
                 >
-                  Mahila Helpline: 112
+                  Female Helpline: 112
                 </a>
               </div>
 
