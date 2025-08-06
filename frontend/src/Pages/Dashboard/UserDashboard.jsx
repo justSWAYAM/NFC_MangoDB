@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
-import { getFirestore, doc, getDoc } from "firebase/firestore";
-import { auth } from "../../../firebase.js";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "../../../firebase.js";
 import NgoDashboard from "./NgoDashboard.jsx";
 import HrDashboard from "./HrDashboard.jsx";
 import {
@@ -23,7 +23,11 @@ import {
   Lock,
   Eye,
   Bell,
-  Activity
+  Activity,
+  LogOut,
+  EyeOff,
+  X,
+  Menu
 } from "lucide-react";
 import {
   collection,
@@ -31,12 +35,12 @@ import {
   where,
   orderBy,
   onSnapshot,
+  updateDoc,
 } from "firebase/firestore";
-import { db } from "../../../firebase";
 import ComplaintModal from "../../Components/Complaint";
 import TrackCasesModal from "../../Components/TrackCasesModal";
 
-const DeviDashboard = () => {
+const UserDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState(null);
@@ -47,6 +51,12 @@ const DeviDashboard = () => {
   const [complaints, setComplaints] = useState([]);
   const [showTrackCases, setShowTrackCases] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [escalationReason, setEscalationReason] = useState("");
+  const [showEscalationModal, setShowEscalationModal] = useState(false);
+  const [caseToEscalate, setCaseToEscalate] = useState(null);
+  const [investigationNotes, setInvestigationNotes] = useState("");
+  const [showInvestigationModal, setShowInvestigationModal] = useState(false);
+  const [caseToInvestigate, setCaseToInvestigate] = useState(null);
 
   const handleLogout = async () => {
     try {
@@ -54,6 +64,78 @@ const DeviDashboard = () => {
       navigate("/auth");
     } catch (error) {
       console.error("Error signing out:", error);
+    }
+  };
+
+  const handleEscalate = (complaintId) => {
+    setCaseToEscalate(complaintId);
+    setShowEscalationModal(true);
+  };
+
+  const handleInvestigate = (complaintId) => {
+    setCaseToInvestigate(complaintId);
+    setShowInvestigationModal(true);
+  };
+
+  const submitEscalation = async () => {
+    if (caseToEscalate && escalationReason.trim()) {
+      try {
+        const complaintRef = doc(db, "complaints", caseToEscalate);
+        const escalationRecord = {
+          date: new Date().toISOString().split("T")[0],
+          action: "Case Escalated by User",
+          response: `Case escalated: ${escalationReason}`,
+          escalatedBy: user?.name || user?.email || "User",
+        };
+
+        await updateDoc(complaintRef, {
+          responseHistory: [
+            ...(complaints.find(c => c.id === caseToEscalate)?.responseHistory || []),
+            escalationRecord,
+          ],
+          status: "Escalated",
+          lastUpdate: new Date().toISOString().split("T")[0],
+          escalationReason: escalationReason,
+        });
+
+        console.log(`Case ${caseToEscalate} escalated with reason: ${escalationReason}`);
+        setShowEscalationModal(false);
+        setEscalationReason("");
+        setCaseToEscalate(null);
+      } catch (error) {
+        console.error("Error escalating case:", error);
+      }
+    }
+  };
+
+  const submitInvestigation = async () => {
+    if (caseToInvestigate && investigationNotes.trim()) {
+      try {
+        const complaintRef = doc(db, "complaints", caseToInvestigate);
+        const investigationRecord = {
+          date: new Date().toISOString().split("T")[0],
+          action: "Investigation Requested by User",
+          response: `Investigation requested: ${investigationNotes}`,
+          requestedBy: user?.name || user?.email || "User",
+        };
+
+        await updateDoc(complaintRef, {
+          responseHistory: [
+            ...(complaints.find(c => c.id === caseToInvestigate)?.responseHistory || []),
+            investigationRecord,
+          ],
+          lastUpdate: new Date().toISOString().split("T")[0],
+          investigationStatus: "Requested",
+          status: "Under Investigation",
+        });
+
+        console.log(`Investigation requested for case ${caseToInvestigate}`);
+        setShowInvestigationModal(false);
+        setInvestigationNotes("");
+        setCaseToInvestigate(null);
+      } catch (error) {
+        console.error("Error requesting investigation:", error);
+      }
     }
   };
 
@@ -110,10 +192,12 @@ const DeviDashboard = () => {
   // Role-based routing logic
   useEffect(() => {
     if (urlRole && urlRole.toLowerCase() === "ngo") {
-      return <NgoDashboard />;
+      navigate("/NGO");
+      return;
     }
     if (urlRole && urlRole.toLowerCase() === "hr") {
-      return <HrDashboard />;
+      navigate("/HR");
+      return;
     }
     if (userRole === "User") {
       // Continue with User Dashboard
@@ -160,8 +244,8 @@ const DeviDashboard = () => {
       bgColor: "bg-[#447D9B]",
       status: "Active",
       stats: {
-        label: "Pending",
-        value: complaints.filter((c) => c.status === "Pending").length,
+        label: "Responses",
+        value: complaints.reduce((total, c) => total + (c.responseHistory?.length || 0), 0),
       },
       action: () => setShowTrackCases(true),
     },
@@ -278,11 +362,13 @@ const DeviDashboard = () => {
         onClose={() => setComplaintModalOpen(false)}
         user={user}
       />
-      <TrackCasesModal
-        open={showTrackCases}
-        onClose={() => setShowTrackCases(false)}
-        complaints={complaints}
-      />
+              <TrackCasesModal
+          open={showTrackCases}
+          onClose={() => setShowTrackCases(false)}
+          complaints={complaints}
+          onEscalate={handleEscalate}
+          onInvestigate={handleInvestigate}
+        />
       <div className="min-h-screen bg-gray-50">
         {/* Professional Header - Responsive */}
         <header className="bg-white border-b border-[#D7D7D7] sticky top-0 z-50 shadow-sm">
@@ -503,9 +589,14 @@ const DeviDashboard = () => {
                       <span className="text-xs text-gray-600 font-medium">
                         {card.stats.label}
                       </span>
-                      <span className="text-sm font-semibold text-[#273F4F]">
-                        {card.stats.value}
-                      </span>
+                      <div className="flex items-center space-x-2">
+                        {card.id === "track-cases" && complaints.reduce((total, c) => total + (c.responseHistory?.length || 0), 0) > 0 && (
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        )}
+                        <span className="text-sm font-semibold text-[#273F4F]">
+                          {card.stats.value}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -615,6 +706,29 @@ const DeviDashboard = () => {
                 </div>
               </div>
 
+              {/* Recent Responses - Responsive */}
+              {complaints.some(c => c.responseHistory?.length > 0) && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4">
+                  <div className="flex items-start space-x-3">
+                    <MessageCircle className="w-4 sm:w-5 h-4 sm:h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-sm font-semibold text-green-900 mb-1">
+                        Recent Responses
+                      </h4>
+                      <p className="text-xs text-green-700 leading-relaxed">
+                        You have {complaints.reduce((total, c) => total + (c.responseHistory?.length || 0), 0)} response{complaints.reduce((total, c) => total + (c.responseHistory?.length || 0), 0) > 1 ? 's' : ''} from NGOs and HR. 
+                        <button 
+                          onClick={() => setShowTrackCases(true)}
+                          className="text-green-800 font-medium hover:underline ml-1"
+                        >
+                          View details →
+                        </button>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Security Notice - Responsive */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
                 <div className="flex items-start space-x-3">
@@ -634,8 +748,74 @@ const DeviDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Escalation Modal */}
+      {showEscalationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md m-4">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Escalate Case</h3>
+            <p className="text-gray-600 mb-4">
+              Please provide a reason for escalating this case:
+            </p>
+            <textarea
+              value={escalationReason}
+              onChange={(e) => setEscalationReason(e.target.value)}
+              className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              rows={4}
+              placeholder="Explain why this case needs escalation..."
+            />
+            <div className="flex space-x-3 mt-4">
+              <button
+                onClick={submitEscalation}
+                className="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Submit Escalation
+              </button>
+              <button
+                onClick={() => setShowEscalationModal(false)}
+                className="px-4 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Investigation Modal */}
+      {showInvestigationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md m-4">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Request Investigation</h3>
+            <p className="text-gray-600 mb-4">
+              Please provide details for the investigation request:
+            </p>
+            <textarea
+              value={investigationNotes}
+              onChange={(e) => setInvestigationNotes(e.target.value)}
+              className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              rows={4}
+              placeholder="Provide details about what needs to be investigated..."
+            />
+            <div className="flex space-x-3 mt-4">
+              <button
+                onClick={submitInvestigation}
+                className="flex-1 bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                Request Investigation
+              </button>
+              <button
+                onClick={() => setShowInvestigationModal(false)}
+                className="px-4 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
 
-export default DeviDashboard;
+export default UserDashboard;

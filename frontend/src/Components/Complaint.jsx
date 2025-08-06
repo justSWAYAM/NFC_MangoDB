@@ -42,10 +42,34 @@ const ComplaintModal = ({ open, onClose, user }) => {
   const [ngoName, setNgoName] = useState("");
   const [uploading, setUploading] = useState(false);
   const [generatingReport, setGeneratingReport] = useState(false);
+  
+  // New state variables for scheduled evidence submission
+  const [scheduleEvidence, setScheduleEvidence] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [evidenceSubmitted, setEvidenceSubmitted] = useState(false);
 
   useEffect(() => {
-    if (open) setStep(0);
+    if (open) {
+      setStep(0);
+      // Reset scheduling state when modal opens
+      setScheduleEvidence(false);
+      setScheduledDate("");
+      setEvidenceSubmitted(false);
+    }
   }, [open]);
+
+  // Calculate minimum and maximum dates for scheduling (3 days to 2 weeks from now)
+  const getMinDate = () => {
+    const minDate = new Date();
+    minDate.setDate(minDate.getDate() + 3);
+    return minDate.toISOString().split('T')[0];
+  };
+
+  const getMaxDate = () => {
+    const maxDate = new Date();
+    maxDate.setDate(maxDate.getDate() + 14);
+    return maxDate.toISOString().split('T')[0];
+  };
 
   const handleSelect = (key, value) => {
     setResponses((prev) => ({ ...prev, [key]: value }));
@@ -111,20 +135,75 @@ const ComplaintModal = ({ open, onClose, user }) => {
     }
   };
 
+  // Function to determine priority based on incident type
+  const getPriority = (incidentType) => {
+    switch (incidentType) {
+      case "Sexual Harassment":
+        return "High";
+      case "Violence":
+        return "Medium";
+      case "Workplace Discrimination":
+      case "Others":
+        return "Low";
+      default:
+        return "Low";
+    }
+  };
+
+  // Handle immediate evidence submission
+  const handleImmediateEvidenceSubmit = async () => {
+    if (!evidenceFile) {
+      alert("Please select evidence file first");
+      return;
+    }
+    
+    setUploading(true);
+    try {
+      const evidenceUrl = await uploadEvidence(evidenceFile);
+      setEvidenceSubmitted(true);
+      setEvidenceFile(null); // Clear the file after submission
+      alert("Evidence submitted successfully!");
+    } catch (error) {
+      alert("Failed to submit evidence. Please try again.");
+      console.error("Error submitting evidence:", error);
+    }
+    setUploading(false);
+  };
+
   const handleSubmit = async () => {
     setUploading(true);
     let evidenceUrl = "";
-    if (addEvidence && evidenceFile) {
-      evidenceUrl = await uploadEvidence(evidenceFile);
+    let evidenceSchedule = null;
+    
+    // Handle evidence submission
+    if (addEvidence) {
+      if (scheduleEvidence) {
+        // Scheduled evidence submission
+        if (scheduledDate) {
+          evidenceSchedule = {
+            scheduledDate: scheduledDate,
+            submitted: evidenceSubmitted,
+            submittedAt: evidenceSubmitted ? serverTimestamp() : null
+          };
+        }
+      } else if (evidenceFile) {
+        // Immediate evidence submission
+        evidenceUrl = await uploadEvidence(evidenceFile);
+      }
     }
+    
+    const priority = getPriority(responses.incidentType);
+    
     try {
       await addDoc(collection(db, "complaints"), {
         ...responses,
         userEmail: isAnonymous ? "anonymous" : user?.email || "",
         userName: isAnonymous ? "Anonymous" : user?.name || "",
         status: "pending",
+        priority: priority,
         createdAt: serverTimestamp(),
         evidenceUrl,
+        evidenceSchedule,
         ngo: addNgo ? ngoName : "",
         isAnonymous,
       });
@@ -162,6 +241,14 @@ const ComplaintModal = ({ open, onClose, user }) => {
             <h2 className="text-2xl font-semibold text-gray-800 mb-4">
               {questions[step].question}
             </h2>
+            {questions[step].key === "incidentType" && (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>Priority Information:</strong> Sexual Harassment cases are automatically marked as High Priority, 
+                  Violence as Medium Priority, and other cases as Low Priority for faster response.
+                </p>
+              </div>
+            )}
             {questions[step].options && (
               <div className="space-y-2">
                 {questions[step].options.map((option, index) => (
@@ -215,6 +302,26 @@ const ComplaintModal = ({ open, onClose, user }) => {
             <h2 className="text-xl font-semibold text-gray-800 mb-4">
               Please review your complaint:
             </h2>
+            
+            {/* Priority Display */}
+            {responses.incidentType && (
+              <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm font-medium text-orange-800">Priority Level:</span>
+                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                    getPriority(responses.incidentType) === 'High' ? 'bg-red-100 text-red-700' :
+                    getPriority(responses.incidentType) === 'Medium' ? 'bg-orange-100 text-orange-700' :
+                    'bg-yellow-100 text-yellow-700'
+                  }`}>
+                    {getPriority(responses.incidentType)} Priority
+                  </span>
+                </div>
+                <p className="text-xs text-orange-700 mt-1">
+                  This case will be prioritized accordingly for faster response.
+                </p>
+              </div>
+            )}
+            
             <ul className="mb-4 space-y-2">
               {questions.map((q, i) => (
                 <li key={i}>
@@ -246,21 +353,119 @@ const ComplaintModal = ({ open, onClose, user }) => {
                 <span className="text-gray-700">Add Evidence (JPG only)</span>
               </label>
               {addEvidence && (
-                <div className="space-y-2">
-                  <input
-                    type="file"
-                    accept="image/jpeg"
-                    className="block"
-                    onChange={(e) => setEvidenceFile(e.target.files[0])}
-                  />
-                  {evidenceFile && (
-                    <button
-                      onClick={generateLegalReport}
-                      disabled={generatingReport}
-                      className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 disabled:bg-blue-300 disabled:cursor-not-allowed text-sm"
-                    >
-                      {generatingReport ? "Generating Report..." : "Generate Legal Report"}
-                    </button>
+                <div className="space-y-3 p-3 bg-gray-50 rounded-lg">
+                  {/* Evidence submission options */}
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="evidenceOption"
+                        checked={!scheduleEvidence}
+                        onChange={() => setScheduleEvidence(false)}
+                        className="accent-orange-500"
+                      />
+                      <span className="text-gray-700">Submit evidence immediately</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="evidenceOption"
+                        checked={scheduleEvidence}
+                        onChange={() => setScheduleEvidence(true)}
+                        className="accent-orange-500"
+                      />
+                      <span className="text-gray-700">Schedule evidence submission</span>
+                    </label>
+                  </div>
+
+                  {!scheduleEvidence ? (
+                    // Immediate evidence submission
+                    <div className="space-y-2">
+                      <input
+                        type="file"
+                        accept="image/jpeg"
+                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+                        onChange={(e) => setEvidenceFile(e.target.files[0])}
+                      />
+                      {evidenceFile && (
+                        <div className="space-y-2">
+                          <button
+                            onClick={generateLegalReport}
+                            disabled={generatingReport}
+                            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 disabled:bg-blue-300 disabled:cursor-not-allowed text-sm"
+                          >
+                            {generatingReport ? "Generating Report..." : "Generate Legal Report"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    // Scheduled evidence submission
+                    <div className="space-y-3">
+                      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p className="text-sm text-blue-800">
+                          <strong>Scheduled Evidence Submission:</strong> You can schedule evidence submission between 3 days and 2 weeks from now. 
+                          If not submitted by the scheduled date, evidence will be automatically shared with HR or NGO.
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Schedule submission date:
+                        </label>
+                        <input
+                          type="date"
+                          min={getMinDate()}
+                          max={getMaxDate()}
+                          value={scheduledDate}
+                          onChange={(e) => setScheduledDate(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
+                        />
+                        <p className="text-xs text-gray-500">
+                          Available: {getMinDate()} to {getMaxDate()}
+                        </p>
+                      </div>
+
+                      {scheduledDate && (
+                        <div className="space-y-2">
+                          <input
+                            type="file"
+                            accept="image/jpeg"
+                            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+                            onChange={(e) => setEvidenceFile(e.target.files[0])}
+                          />
+                          
+                          {evidenceFile && (
+                            <div className="space-y-2">
+                              <button
+                                onClick={handleImmediateEvidenceSubmit}
+                                disabled={uploading}
+                                className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 disabled:bg-green-300 disabled:cursor-not-allowed text-sm"
+                              >
+                                {uploading ? "Submitting..." : "Submit Evidence Now"}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEvidenceFile(null);
+                                  setEvidenceSubmitted(false);
+                                }}
+                                className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 text-sm"
+                              >
+                                Cancel & Keep Scheduled
+                              </button>
+                            </div>
+                          )}
+                          
+                          {evidenceSubmitted && (
+                            <div className="p-2 bg-green-50 border border-green-200 rounded-lg">
+                              <p className="text-sm text-green-700">
+                                ✓ Evidence submitted successfully! Scheduled submission cancelled.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               )}

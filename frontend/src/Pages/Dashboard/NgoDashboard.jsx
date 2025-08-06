@@ -214,8 +214,24 @@ const NgoDashboard = () => {
         (case_) => case_.status === "Resolved" || case_.status === "Closed"
       );
 
-      setActiveCases(active);
-      setResolvedCases(resolved);
+      // Sort cases by priority (High -> Medium -> Low)
+      const sortByPriority = (a, b) => {
+        const priorityOrder = { 'High': 3, 'Medium': 2, 'Low': 1 };
+        const priorityA = priorityOrder[a.priority] || 1;
+        const priorityB = priorityOrder[b.priority] || 1;
+        
+        if (priorityA !== priorityB) {
+          return priorityB - priorityA; // High priority first
+        }
+        
+        // If same priority, sort by date (newest first)
+        const dateA = new Date(a.submittedDate || a.createdAt?.seconds * 1000 || 0);
+        const dateB = new Date(b.submittedDate || b.createdAt?.seconds * 1000 || 0);
+        return dateB - dateA;
+      };
+
+      setActiveCases(active.sort(sortByPriority));
+      setResolvedCases(resolved.sort(sortByPriority));
     } catch (error) {
       console.error("Error loading cases:", error);
       // Fallback to sample data if Firebase fails
@@ -542,33 +558,50 @@ const NgoDashboard = () => {
   };
 
   const sendResponse = async () => {
-    if (selectedCase && responseText.trim()) {
-      try {
-        const caseRef = doc(db, "cases", selectedCase.id);
-        const newResponse = {
-          date: new Date().toISOString().split("T")[0],
-          action: "NGO Response",
-          response: responseText,
-          responder: user?.name || user?.email || "NGO Staff",
-        };
+    console.log("sendResponse called", { selectedCase, responseText });
+    
+    if (!selectedCase) {
+      console.error("No case selected");
+      return;
+    }
+    
+    if (!responseText.trim()) {
+      console.error("No response text");
+      return;
+    }
+    
+    try {
+      // Determine if it's a case or complaint based on the ID format or data structure
+      const isComplaint = selectedCase.userEmail || selectedCase.isAnonymous !== undefined;
+      const collectionName = isComplaint ? "complaints" : "cases";
+      
+      const caseRef = doc(db, collectionName, selectedCase.id);
+      const newResponse = {
+        date: new Date().toISOString().split("T")[0],
+        action: "NGO Response",
+        response: responseText,
+        responder: user?.name || user?.email || "NGO Staff",
+      };
 
-        await updateDoc(caseRef, {
-          responseHistory: [
-            ...(selectedCase.responseHistory || []),
-            newResponse,
-          ],
-          lastUpdate: new Date().toISOString().split("T")[0],
-          status:
-            selectedCase.status === "New" ? "In Progress" : selectedCase.status,
-        });
+      console.log("Updating case with response:", newResponse, "Collection:", collectionName);
 
-        console.log(`Response sent to case ${selectedCase.id}`);
-        setResponseText("");
-        setSelectedCase(null);
-        await loadCases(); // Reload cases to show updated data
-      } catch (error) {
-        console.error("Error sending response:", error);
-      }
+      await updateDoc(caseRef, {
+        responseHistory: [
+          ...(selectedCase.responseHistory || []),
+          newResponse,
+        ],
+        lastUpdate: new Date().toISOString().split("T")[0],
+        status:
+          selectedCase.status === "New" ? "In Progress" : selectedCase.status,
+      });
+
+      console.log(`Response sent to case ${selectedCase.id}`);
+      setResponseText("");
+      setSelectedCase(null);
+      await loadCases(); // Reload cases to show updated data
+    } catch (error) {
+      console.error("Error sending response:", error);
+      alert("Failed to send response. Please try again.");
     }
   };
 
@@ -1083,6 +1116,50 @@ const NgoDashboard = () => {
                             </li>
                           )) || <li>No evidence provided</li>}
                         </ul>
+                        
+                        {/* Evidence Schedule Information */}
+                        {selectedCase.evidenceSchedule && (
+                          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                            <h4 className="text-sm font-semibold text-blue-900 mb-2 flex items-center">
+                              <Clock className="w-4 h-4 mr-2" />
+                              Scheduled Evidence Submission
+                            </h4>
+                            {selectedCase.evidenceSchedule.submitted ? (
+                              <div className="space-y-1">
+                                <div className="flex items-center space-x-2">
+                                  <CheckCircle className="w-4 h-4 text-green-600" />
+                                  <span className="text-sm text-green-700 font-medium">Evidence submitted</span>
+                                </div>
+                                {selectedCase.evidenceSchedule.submittedAt && (
+                                  <p className="text-xs text-gray-600">
+                                    Submitted on: {selectedCase.evidenceSchedule.submittedAt?.toDate ? 
+                                      selectedCase.evidenceSchedule.submittedAt.toDate().toLocaleString() : 
+                                      new Date(selectedCase.evidenceSchedule.submittedAt).toLocaleString()}
+                                  </p>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="space-y-1">
+                                <div className="flex items-center space-x-2">
+                                  <Clock className="w-4 h-4 text-blue-600" />
+                                  <span className="text-sm text-blue-700 font-medium">
+                                    Scheduled for: {new Date(selectedCase.evidenceSchedule.scheduledDate).toLocaleDateString()}
+                                  </span>
+                                </div>
+                                {new Date(selectedCase.evidenceSchedule.scheduledDate) < new Date() && (
+                                  <div className="p-2 bg-red-50 border border-red-200 rounded">
+                                    <p className="text-xs text-red-700 font-medium">
+                                      ⚠️ Scheduled date has passed. Evidence should be automatically shared.
+                                    </p>
+                                  </div>
+                                )}
+                                <p className="text-xs text-gray-600">
+                                  If not submitted by the scheduled date, evidence will be automatically shared.
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       <div>
@@ -1323,7 +1400,7 @@ const NgoDashboard = () => {
                     </p>
                   </div>
 
-                  {selectedCase.responseHistory.length > 0 && (
+                  {selectedCase.responseHistory && selectedCase.responseHistory.length > 0 && (
                     <div className="bg-blue-50 p-4 rounded-lg">
                       <h3 className="font-semibold text-gray-900 mb-3">
                         Response History

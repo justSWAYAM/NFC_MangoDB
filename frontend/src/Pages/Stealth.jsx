@@ -27,7 +27,13 @@ const Input = React.forwardRef(({ className = "", ...props }, ref) => (
 ));
 
 const Card = ({ children, className = "" }) => (
-  <div className={"bg-white rounded-xl shadow-lg border border-orange-200 " + className}>{children}</div>
+  <div
+    className={
+      "bg-white rounded-xl shadow-lg border border-orange-200 " + className
+    }
+  >
+    {children}
+  </div>
 );
 
 const CardContent = ({ children, className = "" }) => (
@@ -40,7 +46,10 @@ const Modal = ({ open, onClose, children }) =>
       <div className="bg-white rounded-xl shadow-lg p-6 min-w-[320px] max-w-sm border-2 border-orange-300">
         {children}
         <div className="mt-4 text-right">
-          <Button className="bg-orange-200 text-orange-900 hover:bg-orange-300" onClick={onClose}>
+          <Button
+            className="bg-orange-200 text-orange-900 hover:bg-orange-300"
+            onClick={onClose}
+          >
             Cancel
           </Button>
         </div>
@@ -169,11 +178,23 @@ const Stealth = () => {
   };
 
   const buttons = [
-    "7", "8", "9", "/",
-    "4", "5", "6", "*",
-    "1", "2", "3", "-",
-    "0", ".", "=", "+",
-    "C"
+    "7",
+    "8",
+    "9",
+    "/",
+    "4",
+    "5",
+    "6",
+    "*",
+    "1",
+    "2",
+    "3",
+    "-",
+    "0",
+    ".",
+    "=",
+    "+",
+    "C",
   ];
 
   // Helper to truncate file name
@@ -186,8 +207,16 @@ const Stealth = () => {
         <Card className="w-[340px]">
           <CardContent>
             <div className="mb-4 text-center">
-              <h2 className="text-2xl font-bold text-orange-700 mb-1">Stealth Calculator</h2>
-              <p className="text-xs text-orange-500">Enter <span className="font-mono bg-orange-100 px-1 rounded">####</span> to unlock secret mode</p>
+              <h2 className="text-2xl font-bold text-orange-700 mb-1">
+                Stealth Calculator
+              </h2>
+              <p className="text-xs text-orange-500">
+                Enter{" "}
+                <span className="font-mono bg-orange-100 px-1 rounded">
+                  ####
+                </span>{" "}
+                to unlock secret mode
+              </p>
             </div>
             <Input
               ref={inputRef}
@@ -215,7 +244,9 @@ const Stealth = () => {
         <Card className="w-full max-w-2xl">
           <CardContent>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-orange-700">Your Secret Files</h2>
+              <h2 className="text-2xl font-bold text-orange-700">
+                Your Secret Files
+              </h2>
               <Button
                 className="bg-orange-200 text-orange-900 hover:bg-orange-300"
                 onClick={() => navigate("/dashboard/user")}
@@ -241,7 +272,9 @@ const Stealth = () => {
               />
             </div>
             <div>
-              <h3 className="text-lg font-semibold mb-3 text-orange-700">Files</h3>
+              <h3 className="text-lg font-semibold mb-3 text-orange-700">
+                Files
+              </h3>
               {images.length === 0 ? (
                 <div className="text-orange-400 text-center py-8">
                   <ImageIcon className="w-12 h-12 mx-auto mb-2" />

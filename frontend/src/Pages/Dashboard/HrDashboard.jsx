@@ -170,8 +170,24 @@ const HrDashboard = () => {
         case_.status === "Closed"
       );
 
-      setActiveCases(active);
-      setResolvedCases(resolved);
+      // Sort active cases by priority (High -> Medium -> Low)
+      const sortByPriority = (a, b) => {
+        const priorityOrder = { 'High': 3, 'Medium': 2, 'Low': 1 };
+        const priorityA = priorityOrder[a.priority] || 1;
+        const priorityB = priorityOrder[b.priority] || 1;
+        
+        if (priorityA !== priorityB) {
+          return priorityB - priorityA; // High priority first
+        }
+        
+        // If same priority, sort by date (newest first)
+        const dateA = new Date(a.submittedDate || a.createdAt?.seconds * 1000 || 0);
+        const dateB = new Date(b.submittedDate || b.createdAt?.seconds * 1000 || 0);
+        return dateB - dateA;
+      };
+
+      setActiveCases(active.sort(sortByPriority));
+      setResolvedCases(resolved.sort(sortByPriority));
     } catch (error) {
       console.error("Error loading cases:", error);
       // Fallback to sample data if Firebase fails
@@ -979,6 +995,50 @@ const HrDashboard = () => {
                              </li>
                            )) || <li>No evidence provided</li>}
                          </ul>
+                         
+                         {/* Evidence Schedule Information */}
+                         {selectedCase.evidenceSchedule && (
+                           <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                             <h4 className="text-sm font-semibold text-blue-900 mb-2 flex items-center">
+                               <Clock className="w-4 h-4 mr-2" />
+                               Scheduled Evidence Submission
+                             </h4>
+                             {selectedCase.evidenceSchedule.submitted ? (
+                               <div className="space-y-1">
+                                 <div className="flex items-center space-x-2">
+                                   <CheckCircle className="w-4 h-4 text-green-600" />
+                                   <span className="text-sm text-green-700 font-medium">Evidence submitted</span>
+                                 </div>
+                                 {selectedCase.evidenceSchedule.submittedAt && (
+                                   <p className="text-xs text-gray-600">
+                                     Submitted on: {selectedCase.evidenceSchedule.submittedAt?.toDate ? 
+                                       selectedCase.evidenceSchedule.submittedAt.toDate().toLocaleString() : 
+                                       new Date(selectedCase.evidenceSchedule.submittedAt).toLocaleString()}
+                                   </p>
+                                 )}
+                               </div>
+                             ) : (
+                               <div className="space-y-1">
+                                 <div className="flex items-center space-x-2">
+                                   <Clock className="w-4 h-4 text-blue-600" />
+                                   <span className="text-sm text-blue-700 font-medium">
+                                     Scheduled for: {new Date(selectedCase.evidenceSchedule.scheduledDate).toLocaleDateString()}
+                                   </span>
+                                 </div>
+                                 {new Date(selectedCase.evidenceSchedule.scheduledDate) < new Date() && (
+                                   <div className="p-2 bg-red-50 border border-red-200 rounded">
+                                     <p className="text-xs text-red-700 font-medium">
+                                       ⚠️ Scheduled date has passed. Evidence should be automatically shared.
+                                     </p>
+                                   </div>
+                                 )}
+                                 <p className="text-xs text-gray-600">
+                                   If not submitted by the scheduled date, evidence will be automatically shared.
+                                 </p>
+                               </div>
+                             )}
+                           </div>
+                         )}
                        </div>
                        
                        <div>
