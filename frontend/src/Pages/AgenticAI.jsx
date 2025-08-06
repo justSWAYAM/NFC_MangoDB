@@ -3,9 +3,37 @@ import {
   Send, Bot, User, Shield, FileText, MapPin, Calendar, AlertTriangle,
   Eye, EyeOff, Upload, Loader, CheckCircle, Clock
 } from "lucide-react";
-import { GoogleGenAI, createUserContent, createPartFromUri } from "@google/genai";
 
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+// Mock Google GenAI for demo purposes
+const mockAI = {
+  chats: {
+    create: () => ({
+      sendMessage: async ({ message }) => {
+        await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API delay
+        return {
+          text: `I understand your concern about ${message.toLowerCase().includes('harassment') ? 'harassment' : 'this incident'}. I've extracted the relevant information from your description. Please review the auto-filled form fields and let me know if you need to add any additional details.`
+        };
+      }
+    })
+  },
+  files: {
+    upload: async ({ file }) => {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return {
+        uri: `mock://uploaded/${file.name}`,
+        mimeType: file.type
+      };
+    }
+  },
+  models: {
+    generateContent: async () => {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      return {
+        text: () => "I've analyzed the uploaded content and extracted relevant complaint information. Please review the form fields that have been auto-populated."
+      };
+    }
+  }
+};
 
 const incidentTypes = [
   "Harassment",
@@ -47,32 +75,14 @@ const AIComplaintChatbot = () => {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [file, setFile] = useState(null);
   const [chat, setChat] = useState(null);
+  const [extracting, setExtracting] = useState(""); // New variable for JSON extraction
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
 
-  // Initialize Google GenAI
-  const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-
-  // Initialize chat on component mount
+  // Initialize mock chat
   useEffect(() => {
-    const initializeChat = () => {
-      const newChat = ai.chats.create({
-        model: "gemini-2.5-flash",
-        history: [
-          {
-            role: "user",
-            parts: [{ text: "Hello, I need help filing a complaint. Please help me extract relevant information from my description including date, location, incident type (harassment, discrimination, violence, bullying, or other), and any other important details. Format your response as JSON when possible with fields: date, location, incidentType, description." }],
-          },
-          {
-            role: "model",
-            parts: [{ text: "I'm here to help you file your complaint securely. Please share your experience with me, and I'll extract the relevant information to help fill out the necessary details automatically. I'll look for dates, locations, incident types, and other important details. Everything you share is confidential." }],
-          },
-        ],
-      });
-      setChat(newChat);
-    };
-
-    initializeChat();
+    const newChat = mockAI.chats.create();
+    setChat(newChat);
   }, []);
 
   // Scroll to bottom on new message
@@ -80,27 +90,22 @@ const AIComplaintChatbot = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  // Helper: Parse Gemini response to extract form fields
-  function extractFieldsFromGemini(text) {
-    // Try to parse JSON from Gemini response
+  // Helper: Extract structured data for form fields
+  const extractFormFields = async (userMessage) => {
+    // Create extraction prompt separate from chat
+    const extractionPrompt = `Extract complaint information from: "${userMessage}". Return JSON with fields: date, location, incidentType (harassment, discrimination, violence, bullying, or other), description. Only return valid JSON.`;
+    
+    setExtracting(extractionPrompt);
+    
+    // Mock extraction - in real implementation, this would be a separate AI call
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
     try {
-      const jsonStart = text.indexOf("{");
-      const jsonEnd = text.lastIndexOf("}");
-      if (jsonStart !== -1 && jsonEnd !== -1) {
-        const jsonString = text.slice(jsonStart, jsonEnd + 1);
-        const parsed = JSON.parse(jsonString);
-        return {
-          ...initialFormData,
-          date: parsed.date || formData.date,
-          location: parsed.location || formData.location,
-          incidentType: parsed.incidentType || formData.incidentType,
-          description: parsed.description || text,
-        };
-      }
-    } catch (e) {
-      // Fallback to text analysis
-      const lowerText = text.toLowerCase();
+      // Simulate AI extraction
+      const lowerText = userMessage.toLowerCase();
       let extractedType = formData.incidentType;
+      let extractedLocation = "";
+      let extractedDate = "";
       
       // Simple keyword matching for incident types
       if (lowerText.includes('harassment') || lowerText.includes('harass')) extractedType = 'Harassment';
@@ -109,20 +114,54 @@ const AIComplaintChatbot = () => {
       else if (lowerText.includes('bully') || lowerText.includes('bullying')) extractedType = 'Bullying';
       else if (extractedType === '') extractedType = 'Other';
 
-      return {
-        ...initialFormData,
+      // Extract location
+      const locationKeywords = ['at ', 'in ', 'near ', 'office', 'school', 'workplace', 'home'];
+      locationKeywords.forEach(keyword => {
+        const index = lowerText.indexOf(keyword);
+        if (index !== -1 && !extractedLocation) {
+          const locationStart = index + keyword.length;
+          const locationEnd = lowerText.indexOf(' ', locationStart + 10);
+          extractedLocation = userMessage.substring(locationStart, locationEnd !== -1 ? locationEnd : locationStart + 20).trim();
+        }
+      });
+
+      // Extract date patterns
+      const dateRegex = /(\d{1,2}\/\d{1,2}\/\d{4}|\d{4}-\d{2}-\d{2}|yesterday|today|last week|last month)/i;
+      const dateMatch = userMessage.match(dateRegex);
+      if (dateMatch) {
+        if (dateMatch[0].toLowerCase() === 'today') {
+          extractedDate = new Date().toISOString().split('T')[0];
+        } else if (dateMatch[0].toLowerCase() === 'yesterday') {
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+          extractedDate = yesterday.toISOString().split('T')[0];
+        } else {
+          extractedDate = dateMatch[0];
+        }
+      }
+
+      const extractedData = {
+        date: extractedDate,
+        location: extractedLocation,
         incidentType: extractedType,
-        description: text
+        description: userMessage
+      };
+
+      setExtracting(JSON.stringify(extractedData, null, 2));
+      return extractedData;
+
+    } catch (e) {
+      console.error("Extraction error:", e);
+      return {
+        date: "",
+        location: "",
+        incidentType: formData.incidentType || "Other",
+        description: userMessage
       };
     }
-    
-    return { 
-      ...initialFormData, 
-      description: text 
-    };
-  }
+  };
 
-  // Send message to Gemini (text only or with file)
+  // Send message to chat (clean message without extraction instructions)
   const handleSendMessage = async () => {
     if (!currentMessage.trim() && !file) return;
     if (!chat) {
@@ -151,46 +190,41 @@ const AIComplaintChatbot = () => {
 
     try {
       let response;
+      let extractedFields;
       
       if (file) {
-        // Multi-modal (text + file)
-        const uploadedFile = await ai.files.upload({
-          file: file,
-        });
-        
-        response = await ai.models.generateContent({
-          model: "gemini-2.5-flash",
-          contents: [
-            createUserContent([
-              currentMessage + " Please analyze this content and extract complaint details including date, location, incident type (harassment, discrimination, violence, bullying, or other), and description. Format as JSON when possible.",
-              createPartFromUri(uploadedFile.uri, uploadedFile.mimeType),
-            ]),
-          ],
-        });
+        // Handle file upload
+        const uploadedFile = await mockAI.files.upload({ file: file });
+        response = await mockAI.models.generateContent();
+        // For files, we'd extract fields differently
+        extractedFields = await extractFormFields(currentMessage + " [File uploaded: " + file.name + "]");
       } else {
-        // Text only using existing chat
-        response = await chat.sendMessage({
-          message: currentMessage + " Please extract any relevant complaint details including date, location, incident type (harassment, discrimination, violence, bullying, or other), and provide a structured response."
-        });
+        // Parallel processing: chat response and field extraction
+        const [chatResponse, fieldExtraction] = await Promise.all([
+          chat.sendMessage({ message: currentMessage }), // Clean message for chat
+          extractFormFields(currentMessage) // Separate extraction
+        ]);
+        
+        response = chatResponse;
+        extractedFields = fieldExtraction;
       }
 
       clearInterval(progressInterval);
       setExtractionProgress(100);
 
-      // Parse Gemini response for form fields
-      const responseText = response.text || response.response?.text() || "I received your message and I'm processing it.";
-      const newFields = extractFieldsFromGemini(responseText);
-      
+      // Update form with extracted data
       setFormData((prev) => ({
         ...prev,
-        date: newFields.date || prev.date,
-        location: newFields.location || prev.location,
-        incidentType: newFields.incidentType || prev.incidentType,
+        date: extractedFields.date || prev.date,
+        location: extractedFields.location || prev.location,
+        incidentType: extractedFields.incidentType || prev.incidentType,
         description: prev.description
-          ? prev.description + " " + (newFields.description || "")
-          : newFields.description || prev.description
+          ? prev.description + " " + extractedFields.description
+          : extractedFields.description || prev.description
       }));
 
+      // Add bot response to chat
+      const responseText = response.text || response.response?.text() || "I received your message and I'm processing it.";
       setMessages((prev) => [
         ...prev,
         {
@@ -200,6 +234,7 @@ const AIComplaintChatbot = () => {
           timestamp: new Date()
         }
       ]);
+
     } catch (err) {
       console.error("Error sending message:", err);
       setMessages((prev) => [
@@ -207,7 +242,7 @@ const AIComplaintChatbot = () => {
         {
           id: Date.now() + 2,
           type: "bot",
-          content: "Sorry, I couldn't process your request. Please try again. Make sure your API key is configured correctly.",
+          content: "Sorry, I couldn't process your request. Please try again.",
           timestamp: new Date()
         }
       ]);
@@ -230,7 +265,7 @@ const AIComplaintChatbot = () => {
     }
   };
 
-  // Submit complaint (dummy, replace with your backend logic)
+  // Submit complaint
   const handleSubmitComplaint = async () => {
     setIsSubmitting(true);
     // Simulate API call
@@ -251,18 +286,18 @@ const AIComplaintChatbot = () => {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-[#273F4F]">AI Complaint Assistant</h1>
-              <p className="text-[#447D9B]">Powered by Gemini AI • End-to-end encrypted</p>
+              <p className="text-[#447D9B]">Powered by AI • End-to-end encrypted</p>
             </div>
             <div className="ml-auto flex items-center space-x-2">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              <span className="text-sm text-[#447D9B] font-medium">Gemini Active</span>
+              <span className="text-sm text-[#447D9B] font-medium">AI Active</span>
             </div>
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-8">
+        <div className="grid lg:grid-cols-3 gap-8">
           {/* Chat Section */}
-          <div className="bg-white/80 backdrop-blur-xl rounded-2xl border border-white/50 shadow-lg overflow-hidden">
+          <div className="lg:col-span-2 bg-white/80 backdrop-blur-xl rounded-2xl border border-white/50 shadow-lg overflow-hidden">
             <div className="bg-gradient-to-r from-[#273F4F] to-[#447D9B] p-4 text-white">
               <div className="flex items-center space-x-3">
                 <Shield className="w-5 h-5" />
@@ -400,7 +435,7 @@ const AIComplaintChatbot = () => {
             <div className="bg-gradient-to-r from-[#FE7743] to-[#447D9B] p-4 text-white">
               <div className="flex items-center space-x-3">
                 <FileText className="w-5 h-5" />
-                <span className="font-semibold">Auto-Generated Complaint Form</span>
+                <span className="font-semibold">Auto-Generated Form</span>
                 {isProcessing && (
                   <div className="ml-auto">
                     <div className="w-4 h-1 bg-white/30 rounded-full overflow-hidden">
@@ -488,9 +523,22 @@ const AIComplaintChatbot = () => {
                   }
                   rows={4}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#447D9B] resize-none"
-                  placeholder="This field will be automatically populated as you describe your incident in the chat..."
+                  placeholder="This field will be automatically populated..."
                 />
               </div>
+
+              {/* Debug section showing extraction data */}
+              {extracting && (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-2">
+                    AI Extraction Process:
+                  </h4>
+                  <pre className="text-xs text-gray-700 whitespace-pre-wrap max-h-20 overflow-y-auto">
+                    {extracting}
+                  </pre>
+                </div>
+              )}
+
               {(formData.incidentType || formData.location || formData.date) && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                   <h4 className="text-sm font-semibold text-blue-900 mb-2">
@@ -524,6 +572,7 @@ const AIComplaintChatbot = () => {
                   </div>
                 </div>
               )}
+
               <div className="flex items-center space-x-3">
                 <button
                   onClick={() =>

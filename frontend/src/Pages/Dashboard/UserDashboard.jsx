@@ -23,7 +23,10 @@ import {
   Lock,
   Eye,
   Bell,
-  Activity
+  Activity,
+  EyeOff, // <-- Add this line
+  X,      // <-- If you use <X /> for close icon
+  Menu    // <-- If you use <Menu /> for mobile menu
 } from "lucide-react";
 import {
   collection,
@@ -335,7 +338,7 @@ const DeviDashboard = () => {
                     className="p-2 text-[#447D9B] hover:text-[#273F4F] hover:bg-gray-100 rounded-lg transition-colors"
                     title="Logout"
                   >
-                    <LogOut className="w-5 h-5" />
+                    Logout
                   </button>
                 </div>
                 <button
@@ -394,7 +397,6 @@ const DeviDashboard = () => {
                     onClick={handleLogout}
                     className="flex items-center space-x-2 w-full px-2 py-2 text-left text-[#447D9B] hover:text-[#273F4F] hover:bg-gray-100 rounded-lg transition-colors"
                   >
-                    <LogOut className="w-5 h-5" />
                     <span>Logout</span>
                   </button>
                 </div>
