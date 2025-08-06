@@ -14,7 +14,7 @@ app.use(express.static("public"));
 
 // Initialize Google Gemini AI
 const genAI = new GoogleGenerativeAI(
-  process.env.GOOGLE_GEMINI_API_KEY || "AIzaSyAjuJiT296hQ_yU_M7tlmiVQl3OxmJ2oRc"
+  process.env.GOOGLE_GEMINI_API_KEY || "your-api-key-here"
 );
 
 // Ensure data directory exists
@@ -92,7 +92,7 @@ app.post("/api/analyze-emotion", async (req, res) => {
     const report = {
       timestamp: new Date().toISOString(),
       originalText: text,
-      userEmail: userEmail || 'anonymous',
+      userEmail: userEmail || "anonymous",
       emotionAnalysis: emotionData,
       metadata: {
         wordCount: text.split(" ").length,
@@ -185,7 +185,7 @@ app.get("/api/emotion-analytics", (req, res) => {
     // Calculate analytics
     const analytics = {
       totalReports: allReports.length,
-      uniqueUsers: [...new Set(allReports.map(r => r.userEmail))].length,
+      uniqueUsers: [...new Set(allReports.map((r) => r.userEmail))].length,
       emotionBreakdown: {},
       riskLevels: { low: 0, medium: 0, high: 0 },
       recentReports: allReports
@@ -195,10 +195,11 @@ app.get("/api/emotion-analytics", (req, res) => {
     };
 
     // Calculate emotion breakdown
-    allReports.forEach(report => {
+    allReports.forEach((report) => {
       const emotion = report.emotionAnalysis.primaryEmotion;
-      analytics.emotionBreakdown[emotion] = (analytics.emotionBreakdown[emotion] || 0) + 1;
-      
+      analytics.emotionBreakdown[emotion] =
+        (analytics.emotionBreakdown[emotion] || 0) + 1;
+
       const risk = report.emotionAnalysis.riskAssessment;
       if (analytics.riskLevels[risk] !== undefined) {
         analytics.riskLevels[risk]++;
@@ -206,8 +207,12 @@ app.get("/api/emotion-analytics", (req, res) => {
     });
 
     // Calculate average confidence
-    const totalConfidence = allReports.reduce((sum, report) => sum + report.emotionAnalysis.confidence, 0);
-    analytics.averageConfidence = allReports.length > 0 ? totalConfidence / allReports.length : 0;
+    const totalConfidence = allReports.reduce(
+      (sum, report) => sum + report.emotionAnalysis.confidence,
+      0
+    );
+    analytics.averageConfidence =
+      allReports.length > 0 ? totalConfidence / allReports.length : 0;
 
     res.json({
       success: true,
