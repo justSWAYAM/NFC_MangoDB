@@ -137,7 +137,7 @@ const Footer = () => {
 
             {/* Copyright */}
             <div className="text-sm text-gray-600 dark:text-gray-400 order-1 sm:order-2">
-              <span>© 2024 EiraSafe. All rights reserved.</span>
+              <span>© 2025 EiraSafe. All rights reserved.</span>
             </div>
 
             {/* Privacy & Terms */}
