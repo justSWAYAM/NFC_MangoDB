@@ -29,7 +29,7 @@ const EmpowermentLanding = () => {
   };
 
   const poems = {
-    en: "Devi She rises in every voice, every storm. A symbol of strength, a journey to selfrespect.",
+    en: "Devi She rises in every voice, every storm. A symbol of strength, a journey to self respect.",
     hi: "देवी हर स्वर में, हर तूफ़ान में वह उठती है। शक्ति की प्रतीक, आत्मसम्मान की यात्रा।",
   };
 
@@ -249,10 +249,7 @@ const EmpowermentLanding = () => {
                   language === "hi" ? "font-hindi tracking-wide" : ""
                 } min-h-[120px] md:min-h-[160px] flex items-center justify-end`}
               >
-                <span className="text-left">
-                  {animatedText}
-                  <span className="animate-pulse">|</span>
-                </span>
+                <span className="text-left">{animatedText}</span>
               </div>
             </div>
 

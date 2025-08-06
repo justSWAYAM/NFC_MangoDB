@@ -1,0 +1,23 @@
+{
+  "timestamp": "2025-08-06T17:29:13.379Z",
+  "originalText": "I am feeling very upset about what happened",
+  "emotionAnalysis": {
+    "primaryEmotion": "sadness",
+    "emotionalIntensity": "medium",
+    "sentiment": "negative",
+    "emotionalIndicators": [
+      "upset"
+    ],
+    "potentialTriggers": [
+      "unspecified event described as 'what happened'"
+    ],
+    "riskAssessment": "low",
+    "confidence": 0.9,
+    "analysis": "The text expresses a feeling of 'upset,' which is a clear indicator of negative emotion.  While 'upset' can encompass anger, frustration, or sadness, the lack of further detail leans towards sadness as the primary emotion.  The intensity is medium because 'very upset' suggests a significant emotional response but not an overwhelming or extreme one. The sentiment is negative due to the expression of distress.  The unspecified nature of 'what happened' is a potential trigger, as it leaves the reader uncertain about the source of the upset.  The lack of specificity and the mild intensity of the expression lead to a low risk assessment. There's no mention of self-harm, harm to others, or other serious indicators of immediate danger.  However, further exploration of 'what happened' could reveal additional information influencing risk."
+  },
+  "metadata": {
+    "wordCount": 8,
+    "characterCount": 43,
+    "processingTime": 1754501353381
+  }
+}

@@ -33,3 +33,19 @@ services:
       - "5173:5173"
     volumes:
       - ./frontend:/app
+
+  emotion-analysis:
+    build: ./backend
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./backend:/app
+      - emotion_data:/app/data
+    environment:
+      - NODE_ENV=production
+      - GOOGLE_GEMINI_API_KEY=${GOOGLE_GEMINI_API_KEY}
+    depends_on:
+      - frontend
+
+volumes:
+  emotion_data:

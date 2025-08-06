@@ -1,0 +1,34 @@
+{
+  "name": "emotion-analysis-backend",
+  "version": "1.0.0",
+  "description": "Backend server for speech-to-text emotion analysis using Google Gemini AI",
+  "main": "emotion-analysis-server.js",
+  "scripts": {
+    "start": "node emotion-analysis-server.js",
+    "dev": "nodemon emotion-analysis-server.js",
+    "test": "node test-api.js",
+    "setup": "chmod +x setup.sh && ./setup.sh"
+  },
+  "keywords": [
+    "emotion-analysis",
+    "speech-to-text",
+    "gemini-ai",
+    "react",
+    "nodejs"
+  ],
+  "author": "NFC MangoDB Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "@google/generative-ai": "^0.2.1",
+    "dotenv": "^16.3.1",
+    "node-fetch": "^2.6.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+} 

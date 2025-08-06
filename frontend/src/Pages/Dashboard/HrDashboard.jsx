@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
 import { getFirestore, doc, getDoc, collection, getDocs, addDoc, updateDoc, query, where, orderBy } from "firebase/firestore";
 import { auth } from "../../../firebase.js";
+import EmotionReports from "../../Components/EmotionReports";
 import {
   AlertCircle,
   CheckCircle,
@@ -678,6 +679,16 @@ const HrDashboard = () => {
                   >
                     Resolved Cases ({resolvedCases.length})
                   </button>
+                  <button
+                    onClick={() => setActiveTab("emotion-reports")}
+                    className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                      activeTab === "emotion-reports"
+                        ? "border-purple-600 text-purple-600 bg-purple-50"
+                        : "border-transparent text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    Emotion Reports
+                  </button>
                 </div>
               </div>
 
@@ -702,7 +713,12 @@ const HrDashboard = () => {
               </div>
 
               {/* Cases List */}
-              <div className="divide-y divide-gray-200">
+              {activeTab === "emotion-reports" ? (
+                <div className="p-6">
+                  <EmotionReports />
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-200">
                 {(activeTab === "active"
                   ? (useSampleData ? sampleActiveCases : activeCases)
                   : (useSampleData ? sampleResolvedCases : resolvedCases)
@@ -848,6 +864,7 @@ const HrDashboard = () => {
                   )
                 )}
               </div>
+              )}
             </div>
           </div>
 

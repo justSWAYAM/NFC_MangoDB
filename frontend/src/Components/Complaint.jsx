@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../../firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import SpeechEmotionAnalyzer from "./SpeechEmotionAnalyzer";
 
 const questions = [
   {
@@ -47,6 +48,11 @@ const ComplaintModal = ({ open, onClose, user }) => {
   const [scheduleEvidence, setScheduleEvidence] = useState(false);
   const [scheduledDate, setScheduledDate] = useState("");
   const [evidenceSubmitted, setEvidenceSubmitted] = useState(false);
+  
+  // Speech-to-text emotion analysis states
+  const [useVoiceInput, setUseVoiceInput] = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState("");
+  const [emotionAnalysisCount, setEmotionAnalysisCount] = useState(0);
 
   useEffect(() => {
     if (open) {
@@ -78,6 +84,21 @@ const ComplaintModal = ({ open, onClose, user }) => {
 
   const handleInput = (key, value) => {
     setResponses((prev) => ({ ...prev, [key]: value }));
+  };
+
+  // Handle voice transcript updates
+  const handleTranscriptUpdate = (transcript) => {
+    setVoiceTranscript(transcript);
+    // Auto-fill description if it's empty
+    if (!responses.description && transcript.trim()) {
+      setResponses((prev) => ({ ...prev, description: transcript.trim() }));
+    }
+  };
+
+  // Handle emotion analysis completion
+  const handleEmotionAnalysisComplete = (analysisData) => {
+    setEmotionAnalysisCount(prev => prev + 1);
+    console.log('Emotion analysis completed:', analysisData);
   };
 
   // Dummy upload function, replace with Firebase Storage if needed
@@ -264,16 +285,62 @@ const ComplaintModal = ({ open, onClose, user }) => {
             )}
             {questions[step].textarea && (
               <div>
+                {/* Voice Input Toggle */}
+                <div className="mb-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={useVoiceInput}
+                      onChange={() => setUseVoiceInput(!useVoiceInput)}
+                      className="accent-orange-500"
+                    />
+                    <span className="text-gray-700 font-medium">
+                      Use Voice Input for Description
+                    </span>
+                  </label>
+                  {useVoiceInput && (
+                    <p className="text-sm text-gray-600 mt-1">
+                      Speak naturally and your words will be transcribed automatically. 
+                      The system will also analyze your emotional state for case management.
+                    </p>
+                  )}
+                </div>
+
+                {/* Speech Emotion Analyzer */}
+                {useVoiceInput && (
+                  <div className="mb-4">
+                    <SpeechEmotionAnalyzer
+                      onTranscriptUpdate={handleTranscriptUpdate}
+                      onEmotionAnalysisComplete={handleEmotionAnalysisComplete}
+                      userId={user?.email || 'anonymous'}
+                      isActive={useVoiceInput}
+                    />
+                  </div>
+                )}
+
                 <textarea
                   className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
-                  placeholder="Type your response here..."
+                  placeholder={useVoiceInput ? "Your voice transcript will appear here..." : "Type your response here..."}
+                  value={useVoiceInput ? voiceTranscript : responses[questions[step].key] || ""}
                   onChange={(e) =>
                     handleInput(questions[step].key, e.target.value)
                   }
+                  readOnly={useVoiceInput}
                 ></textarea>
+                
+                {useVoiceInput && emotionAnalysisCount > 0 && (
+                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-sm text-green-700">
+                      ✓ Voice analysis completed {emotionAnalysisCount} time{emotionAnalysisCount > 1 ? 's' : ''}. 
+                      Your emotional state has been recorded for case management.
+                    </p>
+                  </div>
+                )}
+                
                 <button
                   onClick={() => setStep((prev) => prev + 1)}
                   className="mt-4 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600"
+                  disabled={useVoiceInput && !voiceTranscript.trim()}
                 >
                   Next
                 </button>

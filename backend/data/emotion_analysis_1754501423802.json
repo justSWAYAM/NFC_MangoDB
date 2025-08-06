@@ -1,0 +1,28 @@
+{
+  "timestamp": "2025-08-06T17:30:23.802Z",
+  "originalText": "I am in a mental displace right now and where is scared my boss harassment and is giving me threats about firing if I speak against him",
+  "emotionAnalysis": {
+    "primaryEmotion": "fear",
+    "emotionalIntensity": "high",
+    "sentiment": "negative",
+    "emotionalIndicators": [
+      "scared",
+      "threats",
+      "harassment",
+      "mental displace (suggests distress)"
+    ],
+    "potentialTriggers": [
+      "workplace harassment",
+      "threat of job loss",
+      "power imbalance"
+    ],
+    "riskAssessment": "medium",
+    "confidence": 0.9,
+    "analysis": "The text expresses a high level of fear. The phrase \"scared\" directly indicates this emotion.  The mention of \"harassment\" and \"threats about firing\" significantly elevates the intensity of the fear. The phrase \"mental displace\" suggests significant mental distress, implying a possible inability to cope with the situation rationally. The overall sentiment is strongly negative due to the description of a threatening and hostile work environment.  The risk assessment is medium because while the text points to a serious situation of workplace harassment and potential job loss, it lacks specifics about the nature of the threats and the harasser's actions. Further information would be needed to determine if the situation poses an immediate physical threat.  The situation warrants concern and further investigation, though it doesn't, based on this limited text, automatically suggest an imminent high risk."
+  },
+  "metadata": {
+    "wordCount": 27,
+    "characterCount": 135,
+    "processingTime": 1754501423802
+  }
+}
