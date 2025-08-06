@@ -1,0 +1,35 @@
+services:
+  chatbot:
+    build: ./aiml/chatbot_nfc
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./aiml/chatbot_nfc:/app
+    env_file:
+      - ./aiml/chatbot_nfc/.env
+
+  nlp:
+    build: ./aiml/nlp_nfc
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./aiml/nlp_nfc:/app
+    env_file:
+      - ./aiml/nlp_nfc/.env
+
+  report:
+    build: ./ML/emotion-alert-system
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./ML/emotion-alert-system:/app
+    # remove or keep the env_file line only if .env exists
+    # env_file:
+    #   - ./ML/emotion-alert-system/.env
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app

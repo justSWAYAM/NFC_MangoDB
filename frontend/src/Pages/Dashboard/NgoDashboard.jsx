@@ -575,7 +575,7 @@ const NgoDashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-red-200 text-white shadow-lg">
+      <header className="bg-[#e09b59] text-white shadow-lg">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
@@ -583,11 +583,11 @@ const NgoDashboard = () => {
                 <Shield className="h-8 w-8 mr-3" />
                 Women's Safety Support Network
               </h1>
-              <p className="text-purple-200 text-sm">
+              <p className="text-black text-sm">
                 Empowering women against workplace sexual harassment
               </p>
               {user && (
-                <p className="text-purple-200 text-xs mt-1">
+                <p className="text-black text-sm mt-1">
                   Welcome, {user.name || user.email}
                 </p>
               )}
@@ -606,7 +606,7 @@ const NgoDashboard = () => {
               </div>
               <button
                 onClick={handleLogout}
-                className="bg-black px-4 py-2 rounded-lg hover:bg-black/50 transition-colors flex items-center"
+                className="bg-black px-4 py-2 rounded-lg hover:scale-105 transition-colors flex items-center"
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout
@@ -618,17 +618,17 @@ const NgoDashboard = () => {
 
       <div className="max-w-7xl mx-auto p-6">
         {/* Emergency Banner */}
-        <div className="bg-red-200 text-red-800 p-4 rounded-lg mb-6 flex items-center justify-between">
+        <div className="bg-red-800 text-white p-4 rounded-lg mb-6 flex items-center justify-between">
           <div className="flex items-center">
             <AlertTriangle className="h-6 w-6 mr-3" />
             <div>
               <h3 className="font-bold">24/7 Crisis Support Available</h3>
-              <p className="text-red-800">
+              <p className="text-white ">
                 Immediate assistance for victims of sexual harassment
               </p>
             </div>
           </div>
-          <button className="bg-white text-red-600 px-4 py-2 rounded-lg font-medium hover:bg-red-50 transition-colors flex items-center">
+          <button className="bg-white text-red-800 px-4 py-2 rounded-lg font-medium hover:bg-red-50 transition-colors flex items-center cursor-pointer">
             <PhoneCall className="h-4 w-4 mr-2" />
             Emergency Hotline
           </button>
@@ -845,7 +845,7 @@ const NgoDashboard = () => {
                         <div className="flex flex-col space-y-2 ml-4">
                           <button
                             onClick={() => setSelectedCase(case_)}
-                            className="px-3 py-1 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 transition-colors flex items-center"
+                            className="px-3 py-2 bg-green-200 text-black text-xs rounded-lg hover:bg-green-300 transition-colors flex items-center cursor-pointer"
                           >
                             <Eye className="h-3 w-3 mr-1" />
                             View Details
@@ -855,14 +855,14 @@ const NgoDashboard = () => {
                             <>
                               <button
                                 onClick={() => setSelectedCase(case_)}
-                                className="px-3 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors flex items-center"
+                                className="px-3 py-2 bg-green-200 text-black text-xs rounded-lg hover:bg-green-300 transition-colors flex items-center cursor-pointer"
                               >
                                 <MessageSquare className="h-3 w-3 mr-1" />
                                 Respond
                               </button>
                               <button
                                 onClick={() => handleEscalate(case_.id)}
-                                className="px-3 py-1 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 transition-colors flex items-center"
+                                className="px-3 py-2 bg-red-200 text-black text-xs rounded-lg hover:bg-red-300 transition-colors flex items-center cursor-pointer"
                               >
                                 <ArrowUpCircle className="h-3 w-3 mr-1" />
                                 Escalate
@@ -997,7 +997,7 @@ const NgoDashboard = () => {
 
         {/* Case Detail Modal */}
         {selectedCase && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 backdrop-blur-md shadow-xl bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-8 max-w-4xl max-h-[90vh] overflow-y-auto m-4">
               <div className="flex justify-between items-start mb-6">
                 <h2 className="text-2xl font-bold text-gray-900">
@@ -1360,7 +1360,7 @@ const NgoDashboard = () => {
                     <div className="mt-3 flex space-x-3">
                       <button
                         onClick={sendResponse}
-                        className="flex-1 bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition-colors"
+                        className="flex-1 px-2 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors"
                       >
                         Send Response
                       </button>
