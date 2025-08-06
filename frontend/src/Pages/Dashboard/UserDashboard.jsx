@@ -27,7 +27,7 @@ import {
   LogOut,
   EyeOff,
   X,
-  Menu
+  Menu,
 } from "lucide-react";
 import {
   collection,
@@ -90,7 +90,8 @@ const UserDashboard = () => {
 
         await updateDoc(complaintRef, {
           responseHistory: [
-            ...(complaints.find(c => c.id === caseToEscalate)?.responseHistory || []),
+            ...(complaints.find((c) => c.id === caseToEscalate)
+              ?.responseHistory || []),
             escalationRecord,
           ],
           status: "Escalated",
@@ -98,7 +99,9 @@ const UserDashboard = () => {
           escalationReason: escalationReason,
         });
 
-        console.log(`Case ${caseToEscalate} escalated with reason: ${escalationReason}`);
+        console.log(
+          `Case ${caseToEscalate} escalated with reason: ${escalationReason}`
+        );
         setShowEscalationModal(false);
         setEscalationReason("");
         setCaseToEscalate(null);
@@ -121,7 +124,8 @@ const UserDashboard = () => {
 
         await updateDoc(complaintRef, {
           responseHistory: [
-            ...(complaints.find(c => c.id === caseToInvestigate)?.responseHistory || []),
+            ...(complaints.find((c) => c.id === caseToInvestigate)
+              ?.responseHistory || []),
             investigationRecord,
           ],
           lastUpdate: new Date().toISOString().split("T")[0],
@@ -245,7 +249,10 @@ const UserDashboard = () => {
       status: "Active",
       stats: {
         label: "Responses",
-        value: complaints.reduce((total, c) => total + (c.responseHistory?.length || 0), 0),
+        value: complaints.reduce(
+          (total, c) => total + (c.responseHistory?.length || 0),
+          0
+        ),
       },
       action: () => setShowTrackCases(true),
     },
@@ -362,13 +369,13 @@ const UserDashboard = () => {
         onClose={() => setComplaintModalOpen(false)}
         user={user}
       />
-              <TrackCasesModal
-          open={showTrackCases}
-          onClose={() => setShowTrackCases(false)}
-          complaints={complaints}
-          onEscalate={handleEscalate}
-          onInvestigate={handleInvestigate}
-        />
+      <TrackCasesModal
+        open={showTrackCases}
+        onClose={() => setShowTrackCases(false)}
+        complaints={complaints}
+        onEscalate={handleEscalate}
+        onInvestigate={handleInvestigate}
+      />
       <div className="min-h-screen bg-gray-50">
         {/* Professional Header - Responsive */}
         <header className="bg-white border-b border-[#D7D7D7] sticky top-0 z-50 shadow-sm">
@@ -421,7 +428,7 @@ const UserDashboard = () => {
                     className="p-2 text-[#447D9B] hover:text-[#273F4F] hover:bg-gray-100 rounded-lg transition-colors"
                     title="Logout"
                   >
-                    <LogOut className="w-5 h-5" />
+                    Logout
                   </button>
                 </div>
                 <button
@@ -480,7 +487,6 @@ const UserDashboard = () => {
                     onClick={handleLogout}
                     className="flex items-center space-x-2 w-full px-2 py-2 text-left text-[#447D9B] hover:text-[#273F4F] hover:bg-gray-100 rounded-lg transition-colors"
                   >
-                    <LogOut className="w-5 h-5" />
                     <span>Logout</span>
                   </button>
                 </div>
@@ -590,9 +596,14 @@ const UserDashboard = () => {
                         {card.stats.label}
                       </span>
                       <div className="flex items-center space-x-2">
-                        {card.id === "track-cases" && complaints.reduce((total, c) => total + (c.responseHistory?.length || 0), 0) > 0 && (
-                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        )}
+                        {card.id === "track-cases" &&
+                          complaints.reduce(
+                            (total, c) =>
+                              total + (c.responseHistory?.length || 0),
+                            0
+                          ) > 0 && (
+                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                          )}
                         <span className="text-sm font-semibold text-[#273F4F]">
                           {card.stats.value}
                         </span>
@@ -707,7 +718,7 @@ const UserDashboard = () => {
               </div>
 
               {/* Recent Responses - Responsive */}
-              {complaints.some(c => c.responseHistory?.length > 0) && (
+              {complaints.some((c) => c.responseHistory?.length > 0) && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4">
                   <div className="flex items-start space-x-3">
                     <MessageCircle className="w-4 sm:w-5 h-4 sm:h-5 text-green-600 mt-0.5 flex-shrink-0" />
@@ -716,8 +727,22 @@ const UserDashboard = () => {
                         Recent Responses
                       </h4>
                       <p className="text-xs text-green-700 leading-relaxed">
-                        You have {complaints.reduce((total, c) => total + (c.responseHistory?.length || 0), 0)} response{complaints.reduce((total, c) => total + (c.responseHistory?.length || 0), 0) > 1 ? 's' : ''} from NGOs and HR. 
-                        <button 
+                        You have{" "}
+                        {complaints.reduce(
+                          (total, c) =>
+                            total + (c.responseHistory?.length || 0),
+                          0
+                        )}{" "}
+                        response
+                        {complaints.reduce(
+                          (total, c) =>
+                            total + (c.responseHistory?.length || 0),
+                          0
+                        ) > 1
+                          ? "s"
+                          : ""}{" "}
+                        from NGOs and HR.
+                        <button
                           onClick={() => setShowTrackCases(true)}
                           className="text-green-800 font-medium hover:underline ml-1"
                         >
@@ -753,7 +778,9 @@ const UserDashboard = () => {
       {showEscalationModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-8 max-w-md m-4">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Escalate Case</h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-4">
+              Escalate Case
+            </h3>
             <p className="text-gray-600 mb-4">
               Please provide a reason for escalating this case:
             </p>
@@ -786,7 +813,9 @@ const UserDashboard = () => {
       {showInvestigationModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-8 max-w-md m-4">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Request Investigation</h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-4">
+              Request Investigation
+            </h3>
             <p className="text-gray-600 mb-4">
               Please provide details for the investigation request:
             </p>

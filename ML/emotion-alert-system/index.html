@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Emotion Detection System</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <h1 class="header__title">🔴 Real-Time Emotion Detection System</h1>
+            <p class="header__subtitle">Advanced facial emotion monitoring with distress alert capabilities</p>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <div class="layout">
+                
+                <!-- Webcam Feed Section -->
+                <div class="webcam-section">
+                    <div class="webcam-container" id="webcamContainer">
+                        <video id="videoElement" autoplay muted playsinline></video>
+                        <canvas id="overlay"></canvas>
+                        
+                        <!-- Loading State -->
+                        <div class="loading-state" id="loadingState">
+                            <div class="loading-spinner"></div>
+                            <p>Initializing emotion detection models...</p>
+                        </div>
+
+                        <!-- Welcome State -->
+                        <div class="welcome-state" id="welcomeState">
+                            <div class="welcome-content">
+                                <h3>Welcome to Emotion Detection</h3>
+                                <ul class="instructions-list">
+                                    <li>Position yourself clearly in front of the camera</li>
+                                    <li>Ensure good lighting for accurate detection</li>
+                                    <li>Allow camera permissions when prompted</li>
+                                    <li>System will monitor for sustained distress emotions</li>
+                                    <li>Alerts trigger after 10 seconds of continuous distress</li>
+                                </ul>
+                                <div class="welcome-controls">
+                                    <button class="btn btn--primary btn--lg" id="startDetectionBtn">
+                                        Start Detection
+                                    </button>
+                                    <button class="btn btn--outline" id="settingsBtn">
+                                        Settings
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Error State -->
+                        <div class="error-state hidden" id="errorState">
+                            <div class="error-content">
+                                <h3>⚠️ Camera Access Error</h3>
+                                <p id="errorMessage">Unable to access camera. Please check permissions and try again.</p>
+                                <button class="btn btn--primary" id="retryBtn">Retry</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Control Buttons -->
+                    <div class="controls hidden" id="controlsPanel">
+                        <button class="btn btn--secondary" id="stopDetectionBtn">Stop Detection</button>
+                        <button class="btn btn--outline" id="resetSystemBtn">Reset System</button>
+                        <button class="btn btn--outline" id="settingsBtn2">Settings</button>
+                    </div>
+
+                    <!-- Current Status -->
+                    <div class="status-panel hidden" id="statusPanel">
+                        <div class="status-item">
+                            <span class="status-label">Current Emotion:</span>
+                            <span class="current-emotion" id="currentEmotion">
+                                <span class="emotion-emoji">😐</span>
+                                <span class="emotion-name">neutral</span>
+                            </span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Confidence:</span>
+                            <span class="confidence-level" id="confidenceLevel">0%</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">System Status:</span>
+                            <span class="system-status" id="systemStatus">
+                                <span class="status status--info">Ready</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analytics Panel -->
+                <div class="analytics-panel hidden" id="analyticsPanel">
+                    <!-- Distress Alert Section -->
+                    <div class="card distress-monitor">
+                        <div class="card__body">
+                            <h4>⚠️ Distress Monitor</h4>
+                            <div class="distress-timer">
+                                <div class="timer-display">
+                                    <span class="timer-value" id="distressTimer">0.0s</span>
+                                    <span class="timer-threshold">/ 10.0s</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="distressProgress"></div>
+                                </div>
+                            </div>
+                            <div class="alert-status" id="alertStatus">
+                                <span class="status status--success">No Alert</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Live Emotion Chart -->
+                    <div class="card">
+                        <div class="card__body">
+                            <h4>📊 Live Emotion Distribution</h4>
+                            <div class="chart-container" style="position: relative; height: 200px;">
+                                <canvas id="emotionChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent History -->
+                    <div class="card">
+                        <div class="card__body">
+                            <h4>📝 Recent Detections</h4>
+                            <div class="emotion-history" id="emotionHistory">
+                                <p class="text-secondary">No detections yet</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Performance Metrics -->
+                    <div class="card">
+                        <div class="card__body">
+                            <h4>📈 Performance</h4>
+                            <div class="metrics-grid">
+                                <div class="metric">
+                                    <span class="metric-label">FPS:</span>
+                                    <span class="metric-value" id="fpsCounter">0</span>
+                                </div>
+                                <div class="metric">
+                                    <span class="metric-label">Detections:</span>
+                                    <span class="metric-value" id="detectionCount">0</span>
+                                </div>
+                                <div class="metric">
+                                    <span class="metric-label">Alerts:</span>
+                                    <span class="metric-value" id="alertCount">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Settings Modal -->
+    <div class="modal hidden" id="settingsModal">
+        <div class="modal-overlay" id="modalOverlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>⚙️ Detection Settings</h3>
+                <button class="modal-close" id="closeModalBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label" for="alertThreshold">Alert Threshold (seconds):</label>
+                    <input type="range" id="alertThreshold" class="form-control" min="5" max="30" value="10" step="1">
+                    <span class="range-value" id="thresholdValue">10s</span>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="confidenceThreshold">Confidence Threshold:</label>
+                    <input type="range" id="confidenceThreshold" class="form-control" min="0.1" max="1.0" value="0.5" step="0.1">
+                    <span class="range-value" id="confidenceValue">0.5</span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="frameSkip">Frame Skip (processing frequency):</label>
+                    <input type="range" id="frameSkip" class="form-control" min="1" max="10" value="3" step="1">
+                    <span class="range-value" id="frameSkipValue">3</span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">
+                        <input type="checkbox" id="audioAlerts" checked>
+                        Enable Audio Alerts
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn--secondary" id="resetSettingsBtn">Reset to Defaults</button>
+                <button class="btn btn--primary" id="saveSettingsBtn">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Notification -->
+    <div class="alert-notification hidden" id="alertNotification">
+        <div class="alert-content">
+            <div class="alert-icon">🚨</div>
+            <div class="alert-message">
+                <h4>DISTRESS ALERT</h4>
+                <p id="alertText">Sustained distress emotion detected!</p>
+            </div>
+            <button class="alert-close" id="dismissAlert">&times;</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
